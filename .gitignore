@@ -6,3 +6,4 @@
 Backend/.env
 Backend/.vscode/launch.json
 Backend/__debug_bin2615515111
+*.pbxproj
