@@ -11,6 +11,7 @@ struct SignupView: View {
     @EnvironmentObject private var session: SessionState
 
     private let auth = AuthService()
+    private let profileService = ProfileService()
 
     // Step control
     enum Step { case account, profile }
@@ -207,6 +208,7 @@ struct SignupView: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .disabled(isLoading)
             .shake(shakeTrigger)
+            .animation(.snappy, value: isLoading)
         }
     }
 
@@ -228,7 +230,7 @@ struct SignupView: View {
             step = .profile
 
         case .profile:
-            await createAccountThenSaveProfileAndLogin(skipProfile: false)
+            await createAccount()
         }
     }
 
@@ -278,41 +280,36 @@ struct SignupView: View {
         return true
     }
 
-    private func createAccountThenSaveProfileAndLogin(skipProfile: Bool) async {
+    private func createAccount() async {
         message = nil
         isLoading = true
         defer { isLoading = false }
+        
+        let skipProfile = name.isEmpty && headline.isEmpty && bio.isEmpty ? true : false
 
         let u = username.trimmingCharacters(in: .whitespacesAndNewlines)
 
         do {
-            try await auth.signup(username: u, password: password)
-
-            // Build profile
-            var profile = UserProfile.defaultProfile(for: u)
-
+            // Create user
+            let authResp = try await auth.signup(username: u, password: password)
+            
+            // Upadte profile info
             if !skipProfile {
-                let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                let trimmedHeadline = headline.trimmingCharacters(in: .whitespacesAndNewlines)
-                let trimmedBio = bio.trimmingCharacters(in: .whitespacesAndNewlines)
-
-                if !trimmedName.isEmpty { profile.name = trimmedName }
-                if !trimmedHeadline.isEmpty { profile.headline = trimmedHeadline }
-                if !trimmedBio.isEmpty { profile.bio = trimmedBio }
+                try await profileService.updateProfile(
+                    token: authResp.token,
+                    name: name,
+                    headline: headline,
+                    bio: bio
+                )
             }
 
-            // Persist profile immediately for this username
-            let store = ProfileStore(username: u)
-            store.profile = profile
-            store.save()
-
-            // Auto login
-            session.login(username: u)
+            // Login
+            session.login(userID: authResp.userId, username: u, token: authResp.token)
 
             // Close signup sheet
             dismiss()
         } catch {
-            message = "Signup failed. Try a different username."
+            message = "Signup failed."
             shakeTrigger += 1
         }
     }

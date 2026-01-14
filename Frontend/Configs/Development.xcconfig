@@ -1,0 +1,12 @@
+//
+//  Development.xcconfig
+//  Roadmate
+//
+//  Created by Lakshya Agarwal on 1/12/26.
+//
+
+// Configuration settings file format documentation can be found at:
+// https://developer.apple.com/documentation/xcode/adding-a-build-configuration-file-to-your-project
+
+SLASH = /
+API_BASE_URL = http:$(SLASH)$(SLASH)localhost:8080

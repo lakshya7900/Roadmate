@@ -61,7 +61,7 @@ func main() {
 
 	authed := r.Group("/me")
 	authed.Use(auth.GinRequireAuth([]byte(cfg.JWTSecret)))
-	authed.GET("/profile", h.MeProfile)
+	authed.GET("/profile", h.GetProfile)
 	authed.PUT("/profile", h.UpdateProfile)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)

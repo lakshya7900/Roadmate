@@ -32,17 +32,14 @@ struct RoadmateApp: App {
 }
 
 private struct AuthenticatedRootView: View {
-    @StateObject private var profileStore: ProfileStore
     @StateObject private var projectStore: ProjectStore
 
     init(username: String) {
-        _profileStore = StateObject(wrappedValue: ProfileStore(username: username))
         _projectStore = StateObject(wrappedValue: ProjectStore(username: username))
     }
 
     var body: some View {
         RootView()
-            .environmentObject(profileStore)
             .environmentObject(projectStore)
     }
 }

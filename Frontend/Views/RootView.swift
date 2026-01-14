@@ -11,7 +11,6 @@ struct RootView: View {
     @EnvironmentObject private var session: SessionState
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var projectStore: ProjectStore
-    @EnvironmentObject private var profileStore: ProfileStore
 
     @State private var showCreateProject = false
 
@@ -93,7 +92,7 @@ struct RootView: View {
 
 #Preview {
     let session = SessionState()
-    let _ = session.login(username: "preview-user")
+    let _ = session.login(userID: UUID().uuidString, username: "preview-user", token: UUID().uuidString)
     
     let demoOwner = ProjectMember(username: "preview-user", roleKey: "frontend")
 
@@ -143,19 +142,10 @@ struct RootView: View {
 
     let demoSkill = Skill(name: "Swift", proficiency: 8)
     let demoEducation = Education(school: "Virginia Tech", degree: "Bachelor's", major: "Computer Science", startyear: 2024, endyear: 2028)
-    let profileStore = ProfileStore.preview(profile: UserProfile(
-        username: "user1234",
-        name: "Preview User",
-        headline: "SwiftUI • macOS",
-        bio: "HIIIII",
-        skills: [demoSkill],
-        education: [demoEducation]
-    ))
 
     RootView()
         .environmentObject(session)
         .environmentObject(appState)
         .environmentObject(projectStore)
-        .environmentObject(profileStore)
         .frame(width: 900, height: 500)
 }

@@ -8,6 +8,7 @@
 
 /* Begin PBXFileReference section */
 		BFAAAC642F15FBAA00CBBD3E /* Roadmate.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Roadmate.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BFB917332F15FEBD002AAF5E /* Roadmate-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Roadmate-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -32,6 +33,7 @@
 		BFAAAC5B2F15FBAA00CBBD3E = {
 			isa = PBXGroup;
 			children = (
+				BFB917332F15FEBD002AAF5E /* Roadmate-Info.plist */,
 				BFAAAC662F15FBAA00CBBD3E /* Frontend */,
 				BFAAAC652F15FBAA00CBBD3E /* Products */,
 			);
@@ -247,6 +249,8 @@
 		};
 		BFAAAC702F15FBAB00CBBD3E /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = BFAAAC662F15FBAA00CBBD3E /* Frontend */;
+			baseConfigurationReferenceRelativePath = Configs/Development.xcconfig;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -269,6 +273,7 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Roadmate-Info.plist";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -311,6 +316,7 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Roadmate-Info.plist";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

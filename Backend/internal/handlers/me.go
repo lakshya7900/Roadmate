@@ -9,7 +9,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (h *Handler) MeProfile(c *gin.Context) {
+type updateProfileReq struct {
+    Name     string `json:"name"`
+    Headline string `json:"headline"`
+    Bio      string `json:"bio"`
+}
+
+func (h *Handler) GetProfile(c *gin.Context) {
 	uidAny, _ := c.Get("uid")
 	usrAny, _ := c.Get("usr")
 	uid := uidAny.(string)
@@ -35,12 +41,6 @@ func (h *Handler) MeProfile(c *gin.Context) {
 	})
 }
 
-type updateProfileReq struct {
-    Name     string `json:"name"`
-    Headline string `json:"headline"`
-    Bio      string `json:"bio"`
-}
-
 func (h *Handler) UpdateProfile(c *gin.Context) {
     var req updateProfileReq
     if err := c.ShouldBindJSON(&req); err != nil {
@@ -48,7 +48,7 @@ func (h *Handler) UpdateProfile(c *gin.Context) {
         return
     }
 
-    userIDAny, ok := c.Get("user_id")
+    userIDAny, ok := c.Get("uid")
     if !ok {
         c.JSON(http.StatusUnauthorized, gin.H{"error": "missing auth"})
         return

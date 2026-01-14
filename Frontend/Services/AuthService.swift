@@ -24,16 +24,17 @@ enum AuthError: Error {
 }
 
 final class AuthService {
-    private let baseURL = URL(string: "http://localhost:8080")!
+//    private let baseURL = URL(string: "http://localhost:8080")
+    private let baseURL = AppConfig.apiBaseURL
     
-    func login(username: String, password: String) async throws {
+    func login(username: String, password: String) async throws -> AuthResponse {
         let url = baseURL.appendingPathComponent("/auth/login")
-        try await authenticate(url: url, username: username, password: password)
+        return try await authenticate(url: url, username: username, password: password)
     }
 
-    func signup(username: String, password: String) async throws {
+    func signup(username: String, password: String) async throws -> AuthResponse {
         let url = baseURL.appendingPathComponent("/auth/signup")
-        try await authenticate(url: url, username: username, password: password)
+        return try await authenticate(url: url, username: username, password: password)
     }
     
     func validateUsername(_ username: String) async throws -> Bool {
@@ -68,7 +69,7 @@ final class AuthService {
         url: URL,
         username: String,
         password: String
-    ) async throws {
+    ) async throws -> AuthResponse {
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -79,7 +80,6 @@ final class AuthService {
         ])
 
         let (data, response) = try await URLSession.shared.data(for: req)
-
         guard let http = response as? HTTPURLResponse else {
             throw AuthError.server
         }
@@ -88,6 +88,7 @@ final class AuthService {
         case 200:
             let auth = try JSONDecoder().decode(AuthResponse.self, from: data)
             KeychainService.saveToken(auth.token)
+            return auth
 
         case 401:
             throw AuthError.invalidCredentials

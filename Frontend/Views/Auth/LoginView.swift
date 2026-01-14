@@ -10,7 +10,9 @@ import SwiftUI
 
 struct LoginView: View {
     @EnvironmentObject private var session: SessionState
+    
     private let auth = AuthService()
+    private let profileService = ProfileService()
 
     @State private var username = ""
     @State private var password = ""
@@ -88,7 +90,13 @@ struct LoginView: View {
                 Button {
                     attemptLogin()
                 } label: {
-                    loginButtonLabel
+                    HStack {
+                        if isLoading {
+                            ProgressView().controlSize(.small)
+                        }
+                        Text("Log In")
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
                 }
                 .shake(shakeTrigger)
                 .keyboardShortcut(.defaultAction)
@@ -96,6 +104,7 @@ struct LoginView: View {
                 .controlSize(.large)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .animation(.snappy, value: isLoading)
+                .disabled(isLoading)
 
                 Button {
                     showSignup = true
@@ -127,18 +136,6 @@ struct LoginView: View {
         }
     }
 
-    // MARK: - Button label
-
-    private var loginButtonLabel: some View {
-        HStack(spacing: 10) {
-
-            Text(isLoading ? "Logging in…" : "Log In")
-                .frame(maxWidth: .infinity, alignment: .center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 6)
-    }
-
     // MARK: - Main Login functionality
     private func handleLogin() async {
         complaint = nil
@@ -147,8 +144,12 @@ struct LoginView: View {
 
         do {
             let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
-            try await auth.login(username: trimmed, password: password)
-            session.login(username: trimmed)
+            let authResp = try await auth.login(username: trimmed, password: password)
+            
+            // Fetch profile info from DB
+            let profile = try await profileService.getProfile(token: authResp.token)
+            
+            session.login(userID: authResp.userId, username: profile.username, token: authResp.token)
         } catch {
             complaint = "Invalid username or password."
             shakeTrigger += 1
