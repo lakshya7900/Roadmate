@@ -15,8 +15,16 @@ struct EditSkillView: View {
     let onSave: (Skill) -> Void
     let onDelete: () -> Void
 
+    // Edit Skill
     @State private var name: String
     @State private var proficiency: Double
+    
+    @State private var profileService = ProfileService()
+    
+    // UI state
+    @State private var message: String = ""
+    @State private var isLoading = false
+    @State private var shakeTrigger: Int = 0
 
     init(skill: Skill, onSave: @escaping (Skill) -> Void, onDelete: @escaping () -> Void) {
         self.skill = skill
@@ -34,23 +42,33 @@ struct EditSkillView: View {
                 .fontWeight(.semibold)
 
             Form {
-                TextField("Skill", text: $name)
+                Text(name)
+                    .foregroundStyle(.secondary)
+                    .font(.default)
 
                 VStack(alignment: .leading) {
                     HStack {
-                        Text("Proficiency")
-                        Spacer()
                         Slider(value: $proficiency, in: 1...10, step: 1)
                         Text("\(Int(proficiency))/10")
                             .foregroundStyle(.secondary)
                     }
                 }
             }
+            
+            if !message.isEmpty {
+                HStack {
+                    Spacer()
+                    Label(message, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                }
+                .transition(.opacity)
+                .padding(.vertical, 6)
+            }
+            
 
             HStack {
                 Button(role: .destructive) {
-                    onDelete()
-                    dismiss()
+                    Task { await deleteSkill() }
                 } label: {
                     Label("Delete", systemImage: "trash")
                 }
@@ -60,21 +78,96 @@ struct EditSkillView: View {
 
                 Button("Cancel") { dismiss() }
 
-                Button("Save") {
-                    let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !trimmed.isEmpty else { return }
-
-                    let updated = Skill(id: skill.id, name: trimmed, proficiency: Int(proficiency))
-                    onSave(updated)
-                    dismiss()
-                }
+                Button(action: {
+                    Task{ await updateSkill() }
+                }, label: {
+                    HStack(spacing: 10) {
+                        if isLoading {
+                            ProgressView().controlSize(.small)
+                        }
+                        
+                        Text("Save")
+                    }
+                })
                 .keyboardShortcut(.defaultAction)
-                .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(isLoading)
+                .shake(shakeTrigger)
+                .animation(.snappy, value: isLoading)
             }
         }
         .padding(20)
         .frame(minWidth: 440, minHeight: 260)
     }
+    
+    private func updateSkill() async {
+        guard let token = KeychainService.loadToken() else {
+            message = "Missing token. Please log in again."
+            shakeTrigger += 1
+            return
+        }
+        
+        isLoading = true
+        defer { isLoading = false }
+        
+        do {
+            let resp = try await profileService.updateSkill(
+                token: token,
+                id: skill.id.uuidString,
+                proficiency: Int(proficiency)
+            )
+            
+            let trimmed = resp.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else {
+                return
+            }
+            
+            let updated = Skill(id: resp.id, name: trimmed, proficiency: resp.proficiency)
+            onSave(updated)
+            dismiss()
+        } catch let error as SkillError {
+            switch error {
+            case .skillnotfound:
+                message = "Skill not found"
+                
+            case .server:
+                message = "Server error. Please try again."
+            }
+            shakeTrigger += 1
+        } catch {
+            message = "Something went wrong. Please try again."
+            shakeTrigger += 1
+        }
+    }
+    
+    private func deleteSkill() async {
+        guard let token = KeychainService.loadToken() else {
+            message = "Missing token. Please log in again."
+            shakeTrigger += 1
+            return
+        }
+
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            try await profileService.deleteSkill(token: token, id: skill.id.uuidString)
+            
+            onDelete()
+            dismiss()
+        } catch let error as SkillError {
+            switch error {
+            case .skillnotfound:
+                message = "Skill not found"
+            case .server:
+                message = "Server error. Please try again."
+            }
+            shakeTrigger += 1
+        } catch {
+            message = "Something went wrong. Please try again."
+            shakeTrigger += 1
+        }
+    }
+
 }
 
 #Preview {

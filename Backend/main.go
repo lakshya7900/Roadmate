@@ -55,14 +55,25 @@ func main() {
 		c.JSON(200, gin.H{"ok": true})
 	})
 
+	// Auth
 	r.POST("/auth/signup", h.Signup)
 	r.POST("/auth/login", h.Login)
 	r.GET("/auth/validUsername", h.ValidUsername)
 
 	authed := r.Group("/me")
 	authed.Use(auth.GinRequireAuth([]byte(cfg.JWTSecret)))
+
+	// Profile APIs
 	authed.GET("/profile", h.GetProfile)
 	authed.PUT("/profile", h.UpdateProfile)
+
+	// Skills APIs
+	authed.POST("/skills", h.AddSkill)
+	authed.PUT("/skills", h.UpdateSkill)
+	authed.DELETE("/skills", h.DeleteSkill)
+
+	// Educations APIs
+	authed.POST("/educations", h.AddEducation)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	fmt.Printf("%s Server running on http://localhost:%s\n", time.Now().Format("2006/01/02 15:04:05"), cfg.Port)

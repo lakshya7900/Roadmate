@@ -92,7 +92,6 @@ struct RootView: View {
 
 #Preview {
     let session = SessionState()
-    let _ = session.login(userID: UUID().uuidString, username: "preview-user", token: UUID().uuidString)
     
     let demoOwner = ProjectMember(username: "preview-user", roleKey: "frontend")
 

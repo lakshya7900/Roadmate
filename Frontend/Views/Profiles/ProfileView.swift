@@ -31,158 +31,200 @@ struct ProfileView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 16) {
-
-                if isLoadingProfile && profile == nil {
-                    ProgressView()
-                        .padding(.top, 40)
-                } else if let profileError {
-                    VStack(spacing: 10) {
-                        Text(profileError)
-                            .foregroundStyle(.red)
-                        Button("Retry") { Task { await loadProfile() } }
-                            .buttonStyle(.bordered)
-                    }
-                    .padding(.top, 40)
-                } else if let profile {
-                    heroHeader(profile)
-
-                    HStack(alignment: .top, spacing: 16) {
-                        VStack(spacing: 16) {
-                            skillsCard(profile)
-                            educationCard(profile)
-                        }
-                        .frame(maxWidth: .infinity)
-
-                        VStack(spacing: 16) {
-                            projectsCard
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                    .padding(.horizontal, 16)
-
-                    Spacer(minLength: 18)
-                } else {
-                    // fallback
-                    Text("No profile loaded.")
-                        .foregroundStyle(.secondary)
-                        .padding(.top, 40)
-                }
-            }
-            .padding(.vertical, 16)
+            mainContent
+                .padding(.vertical, 16)
         }
         .scrollIndicators(.hidden)
-        .task { await loadProfile() }
-
-        // MARK: Sheets
-
-        .sheet(isPresented: $showAddSkill) {
-            AddSkillView { newSkill in
-                guard var p = profile else { return }
-                let trimmed = newSkill.name.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !trimmed.isEmpty else { return }
-
-                let exists = p.skills.contains { $0.name.lowercased() == trimmed.lowercased() }
-                guard !exists else { return }
-
-                p.skills.append(Skill(name: trimmed, proficiency: newSkill.proficiency))
-                p.skills.sort { $0.proficiency > $1.proficiency }
-                profile = p
-            }
-            .frame(width: 600, height: 200)
-        }
-
-        .sheet(isPresented: $showManageSkills) {
-            // ManageSkillsView expects a Binding<[Skill]>
-            if profile != nil {
-                ManageSkillsView(
-                    skills: Binding(
-                        get: { profile?.skills ?? [] },
-                        set: { newVal in
-                            guard var p = profile else { return }
-                            p.skills = newVal
-                            profile = p
-                        }
-                    ),
-                    onSave: { }
-                )
+        .onAppear { seedPreviewIfNeeded() }
+        .task {
+            if !isRunningInPreview {
+                await loadProfile()
             }
         }
-
-        .sheet(isPresented: $showAddEducation) {
-            AddEducationView { newEdu in
-                guard var p = profile else { return }
-
-                let exists = p.education.contains {
-                    $0.school.lowercased() == newEdu.school.lowercased() &&
-                    $0.degree.lowercased() == newEdu.degree.lowercased() &&
-                    $0.major.lowercased() == newEdu.major.lowercased() &&
-                    $0.startyear == newEdu.startyear &&
-                    $0.endyear == newEdu.endyear
+        .modifier(ProfileSheets(
+            profile: $profile,
+            profileService: profileService,
+            showAddSkill: $showAddSkill,
+            showManageSkills: $showManageSkills,
+            showAddEducation: $showAddEducation,
+            editingEducation: $editingEducation,
+            showEditProjects: $showEditProjects,
+            showEditProfile: $showEditProfile,
+            projectStore: projectStore,
+            session: session
+        ))
+    }
+    
+    // MARK: - UI Helpers
+    @ViewBuilder
+    private var mainContent: some View {
+        VStack(spacing: 16) {
+            if isLoadingProfile && profile == nil {
+                ProgressView().padding(.top, 40)
+            } else if let profileError {
+                VStack(spacing: 10) {
+                    Text(profileError).foregroundStyle(.red)
+                    Button("Retry") { Task { await loadProfile() } }
+                        .buttonStyle(.bordered)
                 }
-                guard !exists else { return }
-
-                p.education.append(newEdu)
-                p.education.sort { a, b in
-                    if a.endyear != b.endyear { return a.endyear > b.endyear }
-                    return a.startyear > b.startyear
-                }
-                profile = p
-            }
-            .frame(width: 550, height: 260)
-        }
-
-        .sheet(item: $editingEducation) { edu in
-            EditEducationView(
-                education: edu,
-                onSave: { updated in
-                    guard var p = profile else { return }
-                    guard let idx = p.education.firstIndex(where: { $0.id == edu.id }) else { return }
-
-                    p.education[idx] = Education(
-                        id: edu.id,
-                        school: updated.school,
-                        degree: updated.degree,
-                        major: updated.major,
-                        startyear: updated.startyear,
-                        endyear: updated.endyear
-                    )
-
-                    p.education.sort { a, b in
-                        if a.endyear != b.endyear { return a.endyear > b.endyear }
-                        return a.startyear > b.startyear
-                    }
-
-                    profile = p
-                },
-                onDelete: {
-                    guard var p = profile else { return }
-                    p.education.removeAll { $0.id == edu.id }
-                    profile = p
-                }
-            )
-            .frame(minWidth: 520, minHeight: 360)
-        }
-
-        .sheet(isPresented: $showEditProjects) {
-            ManageProjectsView(projects: $projectStore.projects) {
-                projectStore.save()
-            }
-            .frame(minWidth: 520, minHeight: 520)
-        }
-
-        .sheet(isPresented: $showEditProfile) {
-            if let profile {
-                EditProfileView(
-                    user: profile,
-                    onSave: { updated in
-                        Task { await saveProfileBasics(updated) }
-                    }
-                )
-                .frame(minWidth: 600, minHeight: 250)
+                .padding(.top, 40)
+            } else if let profile {
+                profileLoadedView(profile)
+            } else {
+                Text("No profile loaded.")
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 40)
             }
         }
     }
+
+    private func profileLoadedView(_ profile: UserProfile) -> some View {
+        VStack(spacing: 16) {
+            heroHeader(profile)
+
+            HStack(alignment: .top, spacing: 16) {
+                VStack(spacing: 16) {
+                    skillsCard(profile)
+                    educationCard(profile)
+                }
+                .frame(maxWidth: .infinity)
+
+                VStack(spacing: 16) {
+                    projectsCard
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .padding(.horizontal, 16)
+
+            Spacer(minLength: 18)
+        }
+    }
+    
+    // MARK: - Sheets
+    private struct ProfileSheets: ViewModifier {
+        @Binding var profile: UserProfile?
+
+        let profileService: ProfileService
+
+        @Binding var showAddSkill: Bool
+        @Binding var showManageSkills: Bool
+
+        @Binding var showAddEducation: Bool
+        @Binding var editingEducation: Education?
+
+        @Binding var showEditProjects: Bool
+        @Binding var showEditProfile: Bool
+
+        let projectStore: ProjectStore
+        let session: SessionState
+
+        func body(content: Content) -> some View {
+            content
+                .sheet(isPresented: $showAddSkill) {
+                    AddSkillView { newSkill in
+                        guard var p = profile else { return }
+                        p.skills.append(newSkill)
+                        profile = p
+                    }
+                    .frame(width: 600, height: 200)
+                }
+
+                .sheet(isPresented: $showManageSkills) {
+                    if profile != nil {
+                        ManageSkillsView(
+                            skills: Binding(
+                                get: { profile?.skills ?? [] },
+                                set: { newVal in
+                                    guard var p = profile else { return }
+                                    p.skills = newVal
+                                    profile = p
+                                }
+                            ),
+                            onSave: { }
+                        )
+                        .frame(width: 600, height: 400)
+                    }
+                }
+
+                .sheet(isPresented: $showAddEducation) {
+                    AddEducationView { newEdu in
+                        guard var p = profile else { return }
+                        p.educations.append(newEdu)
+                        profile = p
+                    }
+                    .frame(width: 550, height: 300)
+                }
+
+                .sheet(item: $editingEducation) { edu in
+                    EditEducationView(
+                        education: edu,
+                        onSave: { updated in
+                            guard var p = profile else { return }
+                            guard let idx = p.educations.firstIndex(where: { $0.id == edu.id }) else { return }
+
+                            p.educations[idx] = Education(
+                                id: edu.id,
+                                school: updated.school,
+                                degree: updated.degree,
+                                major: updated.major,
+                                startyear: updated.startyear,
+                                endyear: updated.endyear
+                            )
+
+                            p.educations.sort { a, b in
+                                if a.endyear != b.endyear { return a.endyear > b.endyear }
+                                return a.startyear > b.startyear
+                            }
+
+                            profile = p
+                        },
+                        onDelete: {
+                            guard var p = profile else { return }
+                            p.educations.removeAll { $0.id == edu.id }
+                            profile = p
+                        }
+                    )
+                    .frame(minWidth: 520, minHeight: 360)
+                }
+
+                .sheet(isPresented: $showEditProjects) {
+                    ManageProjectsView(projects: Binding(
+                        get: { projectStore.projects },
+                        set: { projectStore.projects = $0 }
+                    )) {
+                        projectStore.save()
+                    }
+                    .frame(minWidth: 520, minHeight: 520)
+                }
+
+                .sheet(isPresented: $showEditProfile) {
+                    if let profile {
+                        EditProfileView(
+                            user: profile,
+                            onSave: { updated in
+                                Task {
+                                    guard let token = KeychainService.loadToken() else { return }
+                                    do {
+                                        try await profileService.updateProfile(
+                                            token: token,
+                                            name: updated.name,
+                                            headline: updated.headline,
+                                            bio: updated.bio
+                                        )
+                                        self.profile = updated
+                                        session.username = updated.username
+                                    } catch {
+                                        // optional: error UI
+                                    }
+                                }
+                            }
+                        )
+                        .frame(minWidth: 600, minHeight: 250)
+                    }
+                }
+        }
+    }
+
 
     // MARK: - Backend load/save
 
@@ -204,7 +246,7 @@ struct ProfileView: View {
         }
     }
 
-    private func saveProfileBasics(_ updated: UserProfile) async {
+    private func saveProfile(_ updated: UserProfile) async {
         guard let token = KeychainService.loadToken() else { return }
 
         do {
@@ -271,7 +313,7 @@ struct ProfileView: View {
                 HStack(spacing: 14) {
                     stat("Projects", "\(projectStore.projects.count)", systemImage: "folder")
                     stat("Skills", "\(profile.skills.count)", systemImage: "bolt.fill")
-                    stat("Education", "\(profile.education.count)", systemImage: "graduationcap.fill")
+                    stat("Education", "\(profile.educations.count)", systemImage: "graduationcap.fill")
                     Spacer()
                 }
             }
@@ -362,17 +404,17 @@ struct ProfileView: View {
             onEdit: { educationEditMode = true },
             editMode: $educationEditMode
         ) {
-            if profile.education.isEmpty {
+            if profile.educations.isEmpty {
                 emptyRow("No education added.")
             } else {
                 VStack(spacing: 10) {
-                    ForEach(profile.education) { e in
+                    ForEach(profile.educations) { e in
                         HStack(alignment: .center, spacing: 10) {
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack {
                                     Text(e.school).font(.headline)
                                     Spacer()
-                                    Text("\(e.startyear) - \(e.endyear)")
+                                    Text("\(String(e.startyear)) - \(String(e.endyear))")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -579,5 +621,79 @@ struct ProfileView: View {
         default: return .secondary
         }
     }
+    
+    // MARK: - Preview helpers
+
+    private var isRunningInPreview: Bool {
+        ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
+    }
+
+    @MainActor
+    private func seedPreviewIfNeeded() {
+        guard isRunningInPreview else { return }
+        guard profile == nil else { return }
+
+        profile = UserProfile(
+            username: "lakshya",
+            name: "Lakshya Agarwal",
+            headline: "Full-stack Developer • macOS + SwiftUI",
+            bio: "Building Roadmate — a local AI project planner for dev teams. Love clean UI, strong systems, and fast iteration.",
+            skills: [
+                Skill(name: "Swift", proficiency: 7),
+                Skill(name: "SwiftUI", proficiency: 8),
+                Skill(name: "Go", proficiency: 6),
+                Skill(name: "React", proficiency: 9),
+                Skill(name: "PostgreSQL", proficiency: 5),
+            ],
+            educations: [
+                Education(
+                    school: "Virginia Tech",
+                    degree: "Bachelor's",
+                    major: "Computer Science",
+                    startyear: 2024,
+                    endyear: 2028
+                )
+            ]
+        )
+    }
+}
+
+//MARK: - Preview Canvas
+#Preview("ProfileView – Demo") {
+    let store = ProjectStore.preview(projects: [
+        Project(
+            name: "Roadmate",
+            description: "Local AI dev planner for teams.",
+            members: [ProjectMember(username: "lakshya", roleKey: "fullstack")],
+            tasks: [
+                TaskItem(title: "Ship v1", status: .done),
+                TaskItem(title: "Profile polish", status: .inProgress)
+            ],
+            ownerMemberId: UUID()
+        ),
+        Project(
+            name: "Side Project",
+            description: "Something cool",
+            members: [ProjectMember(username: "lakshya", roleKey: "fullstack")],
+            tasks: [TaskItem(title: "MVP", status: .inProgress)],
+            ownerMemberId: UUID()
+        ),
+        Project(
+            name: "Another Project",
+            description: "",
+            members: [ProjectMember(username: "lakshya", roleKey: "fullstack")],
+            tasks: [],
+            ownerMemberId: UUID()
+        )
+    ])
+
+    let session = SessionState()
+    // If you have login(username:), use it so logout menu behaves in preview:
+    // session.login(username: "lakshya")
+
+    ProfileView()
+        .environmentObject(session)
+        .environmentObject(store)
+        .frame(width: 980, height: 700)
 }
 

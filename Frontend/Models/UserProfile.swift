@@ -15,7 +15,7 @@ struct UserProfile: Codable, Equatable {
     var headline: String = ""
     var bio: String = ""
     var skills: [Skill] = []
-    var education: [Education] = []
+    var educations: [Education] = []
 }
 
 struct Skill: Codable, Identifiable, Equatable {
@@ -35,14 +35,13 @@ struct Education: Codable, Identifiable, Equatable {
 
 extension UserProfile {
     static func defaultProfile(for username: String) -> UserProfile {
-        // If your struct uses different field names, adjust here.
         UserProfile(
             username: username,
             name: username,
             headline: "",
             bio: "",
             skills: [],
-            education: []
+            educations: []
         )
     }
 }

@@ -10,18 +10,20 @@ import SwiftUI
 struct AddEducationView: View {
     @Environment(\.dismiss) private var dismiss
     let onAdd: (Education) -> Void
+    
+    @State private var profileServivce = ProfileService()
 
     @State private var school : String = ""
     @State private var degree : String = ""
     @State private var major : String = ""
     
-    @State private var startYear: Int = Calendar.current.component(.year, from: Date()) - 1
-    @State private var endYear: Int = Calendar.current.component(.year, from: Date())
+    @State private var startYear: String = ""
+    @State private var endYear: String = ""
     
-    private var yearRange: [Int] {
-        let current = Calendar.current.component(.year, from: Date())
-        return Array((current - 40)...(current + 15))
-    }
+    // UI state
+    @State private var message: String = ""
+    @State private var isLoading = false
+    @State private var shakeTrigger: Int = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -30,70 +32,166 @@ struct AddEducationView: View {
                 .fontWeight(.semibold)
 
             Form {
-                TextField("School Name", text: $school)
-                TextField("Degree", text: $degree)
-                TextField("Major", text: $major)
-                
-                HStack() {
-                    HStack {
-                        Text("Start Year")
-                        Picker("Start", selection: $startYear) {
-                            ForEach(yearRange, id: \.self) { y in
-                                Text(String(y)).tag(y)
-                            }
-                        }
-                        .labelsHidden()
-                    }
-                    .frame(maxWidth: .infinity)
+                VStack(spacing: 20) {
+                    TextField("School Name", text: $school)
+                    TextField("Degree", text: $degree)
+                    TextField("Major", text: $major)
                     
-                    HStack {
-                        Text("Graduation Year")
-                        Picker("Graduation", selection: $endYear) {
-                            ForEach(yearRange, id: \.self) { y in
-                                Text(String(y)).tag(y)
-                            }
-                        }
-                        .labelsHidden()
+                    HStack(spacing: 80) {
+                        TextField("Start Year", text: $startYear)
+                            .frame(width: 150)
+                        TextField("Graduation Year", text: $endYear)
+                            .frame(width: 180)
                     }
-                    .frame(maxWidth: .infinity)
-                }
-                .frame(maxWidth: .infinity)
-                .onChange(of: startYear) { _, newStart in
-                    // keep end >= start
-                    if endYear < newStart { endYear = newStart }
-                }
-                .onChange(of: endYear) { _, newEnd in
-                    // keep end >= start
-                    if newEnd < startYear { startYear = newEnd }
                 }
             }
 
-            HStack {
-                Spacer()
-                Button("Cancel") { dismiss() }
-                Button("Add") {
-                    let trimmedSchool = school.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !trimmedSchool.isEmpty else { return }
-
-                    let edu = Education(
-                        school: trimmedSchool,
-                        degree: degree.trimmingCharacters(in: .whitespacesAndNewlines),
-                        major: major.trimmingCharacters(in: .whitespacesAndNewlines),
-                        startyear: startYear,
-                        endyear: endYear
-                    )
-                    onAdd(edu)
-                    dismiss()
+            VStack(alignment: .trailing) {
+                if !message.isEmpty {
+                    Label(message, systemImage: "exclamationmark.triangle.fill")
+                        .font(.default)
+                        .foregroundStyle(Color(.red))
                 }
-                .disabled(school.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .keyboardShortcut(.defaultAction)
+                
+                HStack {
+                    Spacer()
+                    Button("Cancel") { dismiss() }
+                    Button(action: {
+                        Task { await addEducation() }
+                    }, label: {
+                        HStack(spacing: 10) {
+                            if isLoading {
+                                ProgressView().controlSize(.small)
+                            }
+                            Text("Add")
+                        }
+                    })
+                    .disabled(isLoading)
+                    .shake(shakeTrigger)
+                    .animation(.snappy, value: isLoading)
+                    .keyboardShortcut(.defaultAction)
+                }
             }
         }
+        .animation(.snappy, value: message.isEmpty)
         .padding(20)
+    }
+    
+    private func addEducation() async {
+        guard let token = KeychainService.loadToken() else {
+            message = "Missing token. Please log in again."
+            shakeTrigger += 1
+            return
+        }
+        
+        isLoading = true
+        defer { isLoading = false }
+        
+        do {
+            let trimmedSchool = school.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmedDegree = degree.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmedMajor  = major.trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            guard !trimmedSchool.isEmpty else {
+                shakeTrigger += 1
+                message = "School name is empty."
+                return
+            }
+            
+            guard !trimmedDegree.isEmpty else {
+                shakeTrigger += 1
+                message = "Degree is empty."
+                return
+            }
+            
+            guard !trimmedMajor.isEmpty else {
+                shakeTrigger += 1
+                message = "Major is empty."
+                return
+            }
+            
+            let trimmedStart = startYear.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmedEnd   = endYear.trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            guard !trimmedStart.isEmpty else {
+                shakeTrigger += 1
+                message = "Start Year is empty."
+                return
+            }
+            
+            guard !trimmedEnd.isEmpty else {
+                shakeTrigger += 1
+                message = "Graduation Year is empty."
+                return
+            }
+            
+            guard trimmedStart.count == 4 else {
+                shakeTrigger += 1
+                message = "Start year should be in the format: YYYY"
+                return
+            }
+            guard trimmedEnd.count == 4 else {
+                shakeTrigger += 1
+                message = "Graduation year should be in the format: YYYY"
+                return
+            }
+            
+            guard let sy = Int(startYear) else {
+                shakeTrigger += 1
+                message = "Start year should be a number"
+                return
+            }
+            
+            guard let ey = Int(endYear) else {
+                shakeTrigger += 1
+                message = "Graduation year should be a number"
+                return
+            }
+            
+            guard sy < ey else {
+                shakeTrigger += 1
+                message = "Start year must be before the graduation year."
+                return
+            }
+            
+            let resp = try await profileServivce.addEducations(
+                token: token,
+                school: trimmedSchool,
+                degree: trimmedDegree,
+                major: trimmedMajor,
+                startyear: sy,
+                endyear: ey
+            )
+            
+            let added = Education(
+                id: resp.id,
+                school: resp.school,
+                degree: resp.degree,
+                major: resp.major,
+                startyear: resp.startyear,
+                endyear: resp.endyear
+            )
+            
+            onAdd(added)
+            dismiss()
+        } catch let APIError.badStatus(code, body) {
+            if code == 409 {
+                shakeTrigger += 1
+                message = "Education already exists."
+            } else {
+                shakeTrigger += 1
+                message = "Failed to add education (\(code))."
+                print("AddSkill error body:", body)
+            }
+        } catch {
+            shakeTrigger += 1
+            message = "Failed to add education."
+            print("AddSkill error:", error)
+        }
     }
 }
 
 #Preview {
     AddEducationView { _ in }
-        .frame(width: 550, height: 260)
+        .frame(width: 550, height: 300)
 }

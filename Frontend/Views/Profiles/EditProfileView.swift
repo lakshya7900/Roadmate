@@ -57,7 +57,7 @@ struct EditProfileView: View {
                         headline: headline,
                         bio: bio,
                         skills: user.skills,
-                        education: user.education
+                        educations: user.educations
                     )
                     onSave(updated)
                     dismiss()
@@ -87,7 +87,7 @@ struct EditProfileView: View {
                 Skill(name: "React", proficiency: 10),
                 Skill(name: "PostgreSQL", proficiency: 1),
             ],
-            education: [
+            educations: [
                 Education(school: "Virginia Tech", degree: "Bachelor's", major: "Computer Science", startyear: 2024, endyear: 2028)
             ]
         ),

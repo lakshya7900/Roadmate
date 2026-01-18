@@ -15,8 +15,13 @@ struct EditEducationView: View {
     @State private var degree : String
     @State private var major : String
     
-    @State private var startYear: Int
-    @State private var endYear: Int
+    @State private var startYear: String
+    @State private var endYear: String
+    
+    // UI state
+    @State private var message: String = ""
+    @State private var isLoading = false
+    @State private var shakeTrigger: Int = 0
     
     let education: Education
     let onSave: (Education) -> Void
@@ -30,8 +35,8 @@ struct EditEducationView: View {
         _school = State(initialValue: education.school)
         _degree = State(initialValue: education.degree)
         _major = State(initialValue: education.major)
-        _startYear = State(initialValue: Int(education.startyear))
-        _endYear = State(initialValue: Int(education.endyear))
+        _startYear = State(initialValue: String(education.startyear))
+        _endYear = State(initialValue: String(education.endyear))
     }
     
     private var yearRange: [Int] {
@@ -50,37 +55,11 @@ struct EditEducationView: View {
                 TextField("Degree", text: $degree)
                 TextField("Major", text: $major)
                 
-                HStack() {
-                    HStack {
-                        Text("Start Year")
-                        Picker("Start", selection: $startYear) {
-                            ForEach(yearRange, id: \.self) { y in
-                                Text(String(y)).tag(y)
-                            }
-                        }
-                        .labelsHidden()
-                    }
-                    .frame(maxWidth: .infinity)
-                    
-                    HStack {
-                        Text("Graduation Year")
-                        Picker("Graduation", selection: $endYear) {
-                            ForEach(yearRange, id: \.self) { y in
-                                Text(String(y)).tag(y)
-                            }
-                        }
-                        .labelsHidden()
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-                .frame(maxWidth: .infinity)
-                .onChange(of: startYear) { _, newStart in
-                    // keep end >= start
-                    if endYear < newStart { endYear = newStart }
-                }
-                .onChange(of: endYear) { _, newEnd in
-                    // keep end >= start
-                    if newEnd < startYear { startYear = newEnd }
+                HStack(spacing: 80) {
+                    TextField("Start Year", text: $startYear)
+                        .frame(width: 150)
+                    TextField("Graduation Year", text: $endYear)
+                        .frame(width: 180)
                 }
             }
 
@@ -97,28 +76,101 @@ struct EditEducationView: View {
 
                 Button("Cancel") { dismiss() }
 
-                Button("Save") {
-                    let trimmedSchool = school.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !trimmedSchool.isEmpty else { return }
-
-                    let edu = Education(
-                        id: education.id,
-                        school: trimmedSchool,
-                        degree: degree.trimmingCharacters(in: .whitespacesAndNewlines),
-                        major: major.trimmingCharacters(in: .whitespacesAndNewlines),
-                        startyear: startYear,
-                        endyear: endYear
-                    )
-                    
-                    onSave(edu)
-                    dismiss()
-                }
+                Button(action: {
+                    Task { await editEducation() }
+                }, label: {
+                    HStack(spacing: 10) {
+                        if isLoading {
+                            ProgressView().controlSize(.small)
+                        }
+                        Text("Save")
+                    }
+                })
+                .disabled(isLoading)
+                .shake(shakeTrigger)
+                .animation(.snappy, value: isLoading)
                 .keyboardShortcut(.defaultAction)
-                .disabled(school.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
         .padding(20)
         .frame(minWidth: 440, minHeight: 260)
+    }
+    
+    private func editEducation() async {
+        isLoading = true
+        defer { isLoading = false }
+        
+        let trimmedSchool = school.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedDegree = degree.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedMajor  = major.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        guard !trimmedSchool.isEmpty else {
+            shakeTrigger += 1
+            message = "School name is empty."
+            return
+        }
+        
+        guard !trimmedDegree.isEmpty else {
+            shakeTrigger += 1
+            message = "Degree is empty."
+            return
+        }
+        
+        guard !trimmedMajor.isEmpty else {
+            shakeTrigger += 1
+            message = "Major is empty."
+            return
+        }
+        
+        let trimmedStart = startYear.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedEnd   = endYear.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        guard !trimmedStart.isEmpty else {
+            shakeTrigger += 1
+            message = "Start Year is empty."
+            return
+        }
+        
+        guard !trimmedEnd.isEmpty else {
+            shakeTrigger += 1
+            message = "Graduation Year is empty."
+            return
+        }
+        
+        guard trimmedStart.count == 4 else {
+            shakeTrigger += 1
+            message = "Start year should be in the format: YYYY"
+            return
+        }
+        guard trimmedEnd.count == 4 else {
+            shakeTrigger += 1
+            message = "Graduation year should be in the format: YYYY"
+            return
+        }
+        
+        guard let sy = Int(startYear) else {
+            shakeTrigger += 1
+            message = "Start year should be a number"
+            return
+        }
+        
+        guard let ey = Int(endYear) else {
+            shakeTrigger += 1
+            message = "Graduation year should be a number"
+            return
+        }
+
+        let edu = Education(
+            id: education.id,
+            school: trimmedSchool,
+            degree: degree.trimmingCharacters(in: .whitespacesAndNewlines),
+            major: major.trimmingCharacters(in: .whitespacesAndNewlines),
+            startyear: sy,
+            endyear: ey
+        )
+        
+        onSave(edu)
+        dismiss()
     }
 }
 
