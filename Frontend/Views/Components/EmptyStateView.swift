@@ -18,9 +18,6 @@ struct EmptyStateView: View {
             Text("Welcome to Roadmate")
                 .font(.title2)
                 .fontWeight(.semibold)
-
-            Text("Start by creating a profile or a project.")
-                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

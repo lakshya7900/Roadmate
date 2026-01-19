@@ -9,7 +9,7 @@
 import SwiftUI
 
 struct AllProjectsGridView: View {
-    @EnvironmentObject private var projectStore: ProjectStore
+    @Environment(ProjectStore.self) private var projectStore
 
     let projects: [Project]
     let onSelect: (UUID) -> Void

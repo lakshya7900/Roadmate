@@ -11,7 +11,7 @@ import SwiftUI
 import Combine
 
 @MainActor
-final class AppState: ObservableObject {
+@Observable final class AppState {
     enum Route: Hashable {
         case profile
         case allProjects
@@ -19,5 +19,5 @@ final class AppState: ObservableObject {
         case planner
     }
 
-    @Published var selection: Route? = .allProjects
+    var selection: Route? = .profile
 }

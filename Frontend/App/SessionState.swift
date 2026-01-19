@@ -9,17 +9,18 @@
 import Foundation
 import SwiftUI
 import Combine
+import Observation
 
 @MainActor
-final class SessionState: ObservableObject {
+@Observable final class SessionState {
     // Persisted values
-    @AppStorage("session.userId") private var storedUserId: String = ""
-    @AppStorage("session.username") private var storedUsername: String = ""
+    @ObservationIgnored @AppStorage("session.userId") private var storedUserId: String = ""
+    @ObservationIgnored @AppStorage("session.username") private var storedUsername: String = ""
     
     // Runtime-published values
-    @Published var isAuthenticated: Bool = false
-    @Published var username: String?
-    @Published var userID: String?
+    var isAuthenticated: Bool = false
+    var username: String?
+    var userID: String?
     
     init() {
         restore()
@@ -72,3 +73,4 @@ extension SessionState {
         return s
     }
 }
+

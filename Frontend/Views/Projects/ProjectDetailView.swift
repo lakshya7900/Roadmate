@@ -9,7 +9,7 @@
 import SwiftUI
 
 struct ProjectDetailView: View {
-    @EnvironmentObject private var projectStore: ProjectStore
+    @Environment(ProjectStore.self) private var projectStore
     @State private var project: Project
 
     init(project: Project) {
@@ -58,7 +58,7 @@ struct ProjectDetailView: View {
 }
 
 private struct ProjectDetailPreviewHost: View {
-    @StateObject private var store: ProjectStore
+    @State private var store: ProjectStore
     private let demo: Project
 
     init() {
@@ -82,7 +82,7 @@ private struct ProjectDetailPreviewHost: View {
 
         self.demo = demo
 
-        _store = StateObject(wrappedValue: {
+        _store = State(wrappedValue: {
             let s = ProjectStore(username: "preview-user")
             s.projects = [demo]
             return s
@@ -92,7 +92,7 @@ private struct ProjectDetailPreviewHost: View {
     var body: some View {
         NavigationStack {
             ProjectDetailView(project: demo)
-                .environmentObject(store)
+                .environment(store)
                 .frame(width: 800, height: 450)
         }
     }

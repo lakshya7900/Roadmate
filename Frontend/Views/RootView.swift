@@ -8,33 +8,21 @@
 import SwiftUI
 
 struct RootView: View {
-    @EnvironmentObject private var session: SessionState
-    @EnvironmentObject private var appState: AppState
-    @EnvironmentObject private var projectStore: ProjectStore
+    @Environment(SessionState.self) private var session
+    @Environment(AppState.self) private var appState
+    @Environment(ProjectStore.self) private var projectStore
 
     @State private var showCreateProject = false
     @State private var showAlert = false
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView() {
             SidebarView()
                 .navigationSplitViewColumnWidth(min: 185, ideal: 200, max: 500)
         } detail: {
             detailView
         }
         .toolbar {
-            if appState.selection == .profile {
-                ToolbarItem(placement: .automatic) {
-                    Button("Log Out") { showAlert = true }
-                    .alert("Log out of your account?", isPresented: $showAlert, actions: {
-                        Button(role: .destructive) {
-                            session.logout()
-                        } label: {
-                            Text("Log Out")
-                        }
-                    })
-                }
-            }
 
             // Show "+" only when we’re in Projects section
             if isProjectsContext {
@@ -79,7 +67,7 @@ struct RootView: View {
         case .planner:
             EmptyStateView()
                 .overlay(alignment: .topLeading) {
-                    Text("AI Planner (Step 5)")
+                    Text("AI Planner")
                         .padding(20)
                         .foregroundStyle(.secondary)
                 }
@@ -147,12 +135,9 @@ struct RootView: View {
 
     let projectStore = ProjectStore.preview(projects: [demoProject1, demoProject2])
 
-    let demoSkill = Skill(name: "Swift", proficiency: 8)
-    let demoEducation = Education(school: "Virginia Tech", degree: "Bachelor's", major: "Computer Science", startyear: 2024, endyear: 2028)
-
     RootView()
-        .environmentObject(session)
-        .environmentObject(appState)
-        .environmentObject(projectStore)
+        .environment(session)
+        .environment(appState)
+        .environment(projectStore)
         .frame(width: 900, height: 500)
 }

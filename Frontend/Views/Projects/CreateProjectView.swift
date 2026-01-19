@@ -9,7 +9,7 @@ import SwiftUI
 
 struct CreateProjectView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var session: SessionState
+    @Environment(SessionState.self) private var session
 
     let onCreate: (Project) -> Void
 

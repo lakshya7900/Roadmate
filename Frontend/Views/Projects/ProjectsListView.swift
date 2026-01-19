@@ -14,7 +14,7 @@ private enum ProjectsRoute: Hashable {
 }
 
 struct ProjectsListView: View {
-    @EnvironmentObject private var projectStore: ProjectStore
+    @Environment(ProjectStore.self) private var projectStore
     @State private var selection: ProjectsRoute? = .all
     @State private var showCreate = false
 
@@ -92,10 +92,10 @@ struct ProjectsListView: View {
 }
 
 private struct ProjectsListPreviewHost: View {
-    @StateObject private var store: ProjectStore
+    @State private var store: ProjectStore
 
     init() {
-        _store = StateObject(wrappedValue: {
+        _store = State(wrappedValue: {
             let demoOwner = ProjectMember(username: "preview-user", roleKey: "frontend")
             
             let s = ProjectStore(username: "preview-user")
@@ -136,6 +136,6 @@ private struct ProjectsListPreviewHost: View {
 
     var body: some View {
         ProjectsListView()
-            .environmentObject(store)
+            .environment(store)
     }
 }

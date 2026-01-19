@@ -8,14 +8,15 @@
 import SwiftUI
 
 struct SidebarView: View {
-    @EnvironmentObject private var appState: AppState
-    @EnvironmentObject private var projectStore: ProjectStore
+    @Environment(AppState.self) private var appState
+    @Environment(ProjectStore.self) private var projectStore
 
     @State private var projectsExpanded: Bool = true
 
     var body: some View {
+        @Bindable var appState = appState
+        
         List(selection: $appState.selection) {
-
             NavigationLink(value: AppState.Route.profile) {
                 Label("Profile", systemImage: "person.crop.circle")
             }
@@ -66,13 +67,13 @@ struct SidebarView: View {
 }
 
 private struct MergedSidebarPreviewHost: View {
-    @StateObject private var appState = AppState()
-    @StateObject private var store: ProjectStore
+    @State private var appState = AppState()
+    @State private var store: ProjectStore
 
     init() {
         let owner = ProjectMember(username: "preview-user", roleKey: "frontend")
 
-        _store = StateObject(wrappedValue: {
+        _store = State(wrappedValue: {
             let s = ProjectStore(username: "preview-user")
             s.projects = [
                 Project(name: "Demo One", description: "", members: [owner], tasks: [], ownerMemberId: owner.id),
@@ -85,8 +86,8 @@ private struct MergedSidebarPreviewHost: View {
     var body: some View {
         NavigationSplitView {
             SidebarView()
-                .environmentObject(appState)
-                .environmentObject(store)
+                .environment(appState)
+                .environment(store)
         } detail: {
             Text("Detail")
         }

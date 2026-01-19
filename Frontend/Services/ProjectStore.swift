@@ -11,8 +11,8 @@ import SwiftUI
 import Combine
 
 @MainActor
-final class ProjectStore: ObservableObject {
-    @Published var projects: [Project] = []
+@Observable final class ProjectStore {
+    var projects: [Project] = []
 
     private let fileURL: URL?
     private let persistenceEnabled: Bool

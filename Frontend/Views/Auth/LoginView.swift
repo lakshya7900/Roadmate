@@ -9,7 +9,7 @@
 import SwiftUI
 
 struct LoginView: View {
-    @EnvironmentObject private var session: SessionState
+    @Environment(SessionState.self) private var session
     
     private let auth = AuthService()
     private let profileService = ProfileService()
@@ -130,7 +130,7 @@ struct LoginView: View {
         .onAppear { focusedField = .username }
         .sheet(isPresented: $showSignup) {
             SignupView()
-                .environmentObject(session)
+                .environment(session)
                 .presentationDetents([.medium, .large])
                 .presentationContentInteraction(.resizes)
         }
@@ -193,5 +193,5 @@ extension View {
 
 #Preview {
     LoginView()
-        .environmentObject(SessionState())
+        .environment(SessionState())
 }

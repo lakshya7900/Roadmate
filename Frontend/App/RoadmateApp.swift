@@ -9,8 +9,8 @@ import SwiftUI
 
 @main
 struct RoadmateApp: App {
-    @StateObject private var session = SessionState()
-    @StateObject private var appState = AppState()
+    @State private var session = SessionState()
+    @State private var appState = AppState()
 
     var body: some Scene {
         WindowGroup {
@@ -25,21 +25,21 @@ struct RoadmateApp: App {
                     LoginView()
                 }
             }
-            .environmentObject(session)
-            .environmentObject(appState)
+            .environment(session)
+            .environment(appState)
         }
     }
 }
 
 private struct AuthenticatedRootView: View {
-    @StateObject private var projectStore: ProjectStore
+    @State private var projectStore: ProjectStore
 
     init(username: String) {
-        _projectStore = StateObject(wrappedValue: ProjectStore(username: username))
+        _projectStore = State(wrappedValue: ProjectStore(username: username))
     }
 
     var body: some View {
         RootView()
-            .environmentObject(projectStore)
+            .environment(projectStore)
     }
 }

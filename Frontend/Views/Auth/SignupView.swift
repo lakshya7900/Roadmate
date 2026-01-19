@@ -8,7 +8,7 @@ import SwiftUI
 
 struct SignupView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var session: SessionState
+    @Environment(SessionState.self) private var session
 
     private let auth = AuthService()
     private let profileService = ProfileService()
@@ -330,6 +330,6 @@ struct SignupView: View {
 }
 #Preview {
     SignupView()
-        .environmentObject(SessionState())
+        .environment(SessionState())
 }
 

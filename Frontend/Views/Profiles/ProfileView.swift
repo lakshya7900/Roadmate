@@ -8,8 +8,8 @@
 import SwiftUI
 
 struct ProfileView: View {
-    @EnvironmentObject private var session: SessionState
-    @EnvironmentObject private var projectStore: ProjectStore
+    @Environment(SessionState.self) private var session
+    @Environment(ProjectStore.self) private var projectStore
     
     @State private var profileService = ProfileService()
 
@@ -28,6 +28,8 @@ struct ProfileView: View {
     @State private var showAllProjects = false
 
     @State private var showEditProfile = false
+    
+    @State private var showAlert = false
 
     var body: some View {
         ScrollView {
@@ -294,14 +296,10 @@ struct ProfileView: View {
 
                     Spacer()
 
-                    Menu {
-                        Button("Edit Profile") { showEditProfile = true }
-                        Divider()
-                        Button("Logout", role: .destructive) {
-                            session.logout()
-                        }
+                    Button {
+                         showEditProfile = true
                     } label: {
-                        Image(systemName: "ellipsis.circle")
+                        Image(systemName: "pencil")
                             .font(.title3)
                             .foregroundStyle(.secondary)
                     }
@@ -315,6 +313,15 @@ struct ProfileView: View {
                     stat("Skills", "\(profile.skills.count)", systemImage: "bolt.fill")
                     stat("Education", "\(profile.educations.count)", systemImage: "graduationcap.fill")
                     Spacer()
+                    Button("Log Out", action: { showAlert = true })
+                    .alert("Log out of your account?", isPresented: $showAlert, actions: {
+                        Button(role: .destructive) {
+                            session.logout()
+                        } label: {
+                            Text("Log Out")
+                        }
+                    })
+                    .tint(.red)
                 }
             }
             .padding(16)
@@ -692,8 +699,8 @@ struct ProfileView: View {
     // session.login(username: "lakshya")
 
     ProfileView()
-        .environmentObject(session)
-        .environmentObject(store)
+        .environment(session)
+        .environment(store)
         .frame(width: 980, height: 700)
 }
 
