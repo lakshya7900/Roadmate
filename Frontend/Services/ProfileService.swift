@@ -53,6 +53,24 @@ struct AddEducationRequest: Encodable {
     let endyear: Int
 }
 
+struct UpdateEducationRequest: Encodable {
+    let id: String
+    let school: String
+    let degree: String
+    let major: String
+    let startyear: Int
+    let endyear: Int
+}
+
+struct DeleteEducationError: Encodable {
+    let id: String
+}
+
+enum EducationError: Error {
+    case educationnotfound
+    case server
+}
+
 final class ProfileService {
     func getProfile(token: String) async throws -> UserProfile {
         let url = AppConfig.apiBaseURL.appendingPathComponent("/me/profile")
@@ -145,7 +163,7 @@ final class ProfileService {
         switch http.statusCode {
         case 200:
             let dto = try JSONDecoder().decode(Skill.self, from: data)
-            return Skill(id: dto.id, name: dto.name, proficiency: dto.proficiency)
+            return dto
 
         case 404:
             throw SkillError.skillnotfound
@@ -208,5 +226,68 @@ final class ProfileService {
         
         let dto = try JSONDecoder().decode(Education.self, from: data)
         return dto
+    }
+    
+    func updateEducation(token:String, id: String, school: String, degree: String, major:String, startyear: Int, endyear: Int) async throws -> Education {
+        let url = AppConfig.apiBaseURL.appendingPathComponent("/me/educations")
+        
+        var req = URLRequest(url: url)
+        req.httpMethod = "PUT"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        
+        let body = UpdateEducationRequest(
+            id: id,
+            school: school,
+            degree: degree,
+            major: major,
+            startyear: startyear,
+            endyear: endyear
+        )
+        req.httpBody = try JSONEncoder().encode(body)
+        
+        let (data, response) = try await URLSession.shared.data(for: req)
+        guard let http = response as? HTTPURLResponse else {
+            throw AuthError.server
+        }
+        
+        switch http.statusCode {
+        case 200:
+            let dto = try JSONDecoder().decode(Education.self, from: data)
+            return dto
+
+        case 404:
+            throw EducationError.educationnotfound
+
+        default:
+            throw EducationError.server
+        }
+    }
+    
+    func deleteEducation(token:String, id: String) async throws {
+        let url = AppConfig.apiBaseURL.appendingPathComponent("/me/educations")
+        
+        var req = URLRequest(url: url)
+        req.httpMethod = "DELETE"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        
+        let body = DeleteEducationError(id: id)
+        req.httpBody = try JSONEncoder().encode(body)
+        
+        let (_, response) = try await URLSession.shared.data(for: req)
+        guard let http = response as? HTTPURLResponse else {
+            throw AuthError.server
+        }
+        
+        switch http.statusCode {
+        case 200:
+            return
+        case 404:
+            throw EducationError.educationnotfound
+
+        default:
+            throw EducationError.server
+        }
     }
 }

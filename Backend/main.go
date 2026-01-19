@@ -74,6 +74,8 @@ func main() {
 
 	// Educations APIs
 	authed.POST("/educations", h.AddEducation)
+	authed.PUT("/educations", h.UpdateEducation)
+	authed.DELETE("/educations", h.DeleteEducation)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	fmt.Printf("%s Server running on http://localhost:%s\n", time.Now().Format("2006/01/02 15:04:05"), cfg.Port)

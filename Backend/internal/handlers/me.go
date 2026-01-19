@@ -10,14 +10,14 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// Profile
+// Profile struct
 type updateProfileReq struct {
     Name     string `json:"name"`
     Headline string `json:"headline"`
     Bio      string `json:"bio"`
 }
 
-// Skills
+// Skills structs
 type skillsStruct struct {
     ID         string `json:"id"`
     Name       string `json:"name"`
@@ -38,7 +38,7 @@ type deleteSkillReq struct {
     ID string `json:"id"`
 }
 
-// Education
+// Education structs
 type educationStruct struct {
     ID        string `json:"id"`
     School    string `json:"school"`
@@ -56,6 +56,18 @@ type addEducationReq struct {
     EndYear   int    `json:"endyear"`
 }
 
+type updateEducationReq struct {
+    ID        string `json:"id"`
+    School    string  `json:"school"`
+    Degree    string `json:"degree"`
+    Major     string `json:"major"`
+    StartYear int    `json:"startyear"`
+    EndYear   int    `json:"endyear"`
+}
+
+type deleteEducationReq struct {
+    ID        string `json:"id"`
+}
 
 
 func (h *Handler) GetProfile(c *gin.Context) {
@@ -449,4 +461,135 @@ func (h *Handler) AddEducation(c *gin.Context) {
     }
 
     c.JSON(http.StatusOK, created)
+}
+
+func (h *Handler) UpdateEducation(c *gin.Context) {
+    var req updateEducationReq
+    if err := c.ShouldBindJSON(&req); err != nil {
+        fmt.Printf("Error 1")
+        c.JSON(http.StatusBadRequest, gin.H{"error": "bad json"})
+        return
+    }
+
+    userIDAny, ok := c.Get("uid")
+    if !ok {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "missing auth"})
+        return
+    }
+    userID, ok := userIDAny.(string)
+    if !ok || userID == "" {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "bad auth"})
+        return
+    }
+
+    school := strings.TrimSpace(req.School)
+    if school == "" {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "missing school"})
+        return
+    }
+
+    degree := strings.TrimSpace(req.Degree)
+    if degree == "" {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "missing degree"})
+        return
+    }
+
+    major := strings.TrimSpace(req.Major)
+    if major == "" {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "missing major"})
+        return
+    }
+
+    startYear := req.StartYear
+    if startYear == 0 {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "missing start year"})
+        return
+    }
+
+    endYear := req.EndYear
+    if endYear == 0 {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "missing end year"})
+        return
+    }
+
+    if endYear < startYear {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "end year before start year"})
+        return
+    }
+
+    ctx, cancel := contextTimeout(c, 5*time.Second)
+    defer cancel()
+
+    var updated educationStruct
+
+    err := h.DB.QueryRow(ctx,
+        `update educations
+        set school = $1, 
+        degree = $2, 
+        major = $3, 
+        start_year = $4, 
+        end_year = $5
+        where id = $6::uuid and user_id = $7
+        returning id::text, school, degree, major, start_year, end_year
+    `, req.School, 
+    req.Degree, 
+    req.Major, 
+    req.StartYear, 
+    req.EndYear, 
+    req.ID, 
+    userID).Scan(&updated.ID, 
+        &updated.School, 
+        &updated.Degree, 
+        &updated.Major, 
+        &updated.StartYear, 
+        &updated.EndYear); 
+    
+    if err != nil {
+        if err == pgx.ErrNoRows {
+            c.JSON(http.StatusNotFound, gin.H{"error": "education not found"})
+            return
+        }
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "server error"})
+        return
+    }
+
+    c.JSON(http.StatusOK, updated)
+}
+
+func (h *Handler) DeleteEducation(c *gin.Context) {
+    var req deleteEducationReq
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "bad json"})
+        return
+    }
+
+    userIDAny, ok := c.Get("uid")
+    if !ok {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "missing auth"})
+        return
+    }
+    userID, ok := userIDAny.(string)
+    if !ok || userID == "" {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "bad auth"})
+        return
+    }
+
+    ctx, cancel := contextTimeout(c, 5*time.Second)
+    defer cancel()
+
+    cmd, err := h.DB.Exec(ctx,
+        `delete from educations where id = $1::uuid and user_id = $2`,
+        req.ID, userID,
+    )
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "server error"})
+        return
+    }
+
+    if cmd.RowsAffected() == 0 {
+        c.JSON(http.StatusNotFound, gin.H{"error": "skill not found"})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"ok": true})
 }

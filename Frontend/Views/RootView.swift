@@ -13,6 +13,7 @@ struct RootView: View {
     @EnvironmentObject private var projectStore: ProjectStore
 
     @State private var showCreateProject = false
+    @State private var showAlert = false
 
     var body: some View {
         NavigationSplitView {
@@ -24,7 +25,14 @@ struct RootView: View {
         .toolbar {
             if appState.selection == .profile {
                 ToolbarItem(placement: .automatic) {
-                    Button("Log Out") { session.logout() }
+                    Button("Log Out") { showAlert = true }
+                    .alert("Log out of your account?", isPresented: $showAlert, actions: {
+                        Button(role: .destructive) {
+                            session.logout()
+                        } label: {
+                            Text("Log Out")
+                        }
+                    })
                 }
             }
 
