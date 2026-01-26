@@ -35,3 +35,20 @@ create table if not exists educations (
   end_year int not null,
   created_at timestamptz not null default now()
 );
+
+create table if not exists projects (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  description text not null default '',
+  owner_id uuid not null references users(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists projects_members (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references projects(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  username text not null,
+  roleKey text not null,
+  created_at timestamptz not null default now()
+);

@@ -11,13 +11,14 @@ enum APIError: Error {
     case badStatus(Int, String)
 }
 
-struct ProfileResponse: Decodable {
-    let username: String
-    let name: String
-    let headline: String
-    let bio: String
-    let skills: [Skill]?
-    let educations: [Education]?
+enum SkillError: Error {
+    case skillNotFound
+    case serverError
+}
+
+enum EducationError: Error {
+    case educationNotFound
+    case serverError
 }
 
 struct AddSkillRequest: Encodable {
@@ -28,21 +29,6 @@ struct AddSkillRequest: Encodable {
 struct UpdateSkillRequest: Encodable {
     let id: String
     let proficiency: Int
-}
-
-struct DeleteSkillRequest: Encodable {
-    let id: String
-}
-
-struct SkillResponse: Decodable {
-    let id: String
-    let name: String
-    let proficiency: Int
-}
-
-enum SkillError: Error {
-    case skillnotfound
-    case server
 }
 
 struct AddEducationRequest: Encodable {
@@ -62,15 +48,6 @@ struct UpdateEducationRequest: Encodable {
     let endyear: Int
 }
 
-struct DeleteEducationError: Encodable {
-    let id: String
-}
-
-enum EducationError: Error {
-    case educationnotfound
-    case server
-}
-
 final class ProfileService {
     func getProfile(token: String) async throws -> UserProfile {
         let url = AppConfig.apiBaseURL.appendingPathComponent("/me/profile")
@@ -86,16 +63,7 @@ final class ProfileService {
             throw APIError.badStatus(code, body)
         }
         
-        let dto = try JSONDecoder().decode(ProfileResponse.self, from: data)
-        
-        var profile = UserProfile.defaultProfile(for: dto.username)
-        profile.name = dto.name
-        profile.headline = dto.headline
-        profile.bio = dto.bio
-        profile.skills = dto.skills ?? []
-        profile.educations = dto.educations ?? []
-        return profile
-    }
+        return try JSONDecoder().decode(UserProfile.self, from: data)    }
 
     func updateProfile(token: String, name: String, headline: String, bio: String) async throws {
         let n = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -166,23 +134,21 @@ final class ProfileService {
             return dto
 
         case 404:
-            throw SkillError.skillnotfound
+            throw SkillError.skillNotFound
 
         default:
-            throw SkillError.server
+            throw SkillError.serverError
         }
     }
     
-    func deleteSkill(token:String, id: String) async throws {
-        let url = AppConfig.apiBaseURL.appendingPathComponent("/me/skills")
+    func deleteSkill(token:String, id: UUID) async throws {
+        let url = AppConfig.apiBaseURL
+            .appendingPathComponent("/me/skills/\(id.uuidString.lowercased())")
         
         var req = URLRequest(url: url)
         req.httpMethod = "DELETE"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        
-        let body = DeleteSkillRequest(id: id)
-        req.httpBody = try JSONEncoder().encode(body)
         
         let (_, response) = try await URLSession.shared.data(for: req)
         guard let http = response as? HTTPURLResponse else {
@@ -193,10 +159,10 @@ final class ProfileService {
         case 200:
             return
         case 404:
-            throw SkillError.skillnotfound
+            throw SkillError.skillNotFound
 
         default:
-            throw SkillError.server
+            throw SkillError.serverError
         }
     }
     
@@ -257,23 +223,21 @@ final class ProfileService {
             return dto
 
         case 404:
-            throw EducationError.educationnotfound
+            throw EducationError.educationNotFound
 
         default:
-            throw EducationError.server
+            throw EducationError.serverError
         }
     }
     
-    func deleteEducation(token:String, id: String) async throws {
-        let url = AppConfig.apiBaseURL.appendingPathComponent("/me/educations")
+    func deleteEducation(token:String, id: UUID) async throws {
+        let url = AppConfig.apiBaseURL
+            .appendingPathComponent("/me/educations\(id.uuidString.lowercased())")
         
         var req = URLRequest(url: url)
         req.httpMethod = "DELETE"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        
-        let body = DeleteEducationError(id: id)
-        req.httpBody = try JSONEncoder().encode(body)
         
         let (_, response) = try await URLSession.shared.data(for: req)
         guard let http = response as? HTTPURLResponse else {
@@ -284,10 +248,10 @@ final class ProfileService {
         case 200:
             return
         case 404:
-            throw EducationError.educationnotfound
+            throw EducationError.educationNotFound
 
         default:
-            throw EducationError.server
+            throw EducationError.serverError
         }
     }
 }

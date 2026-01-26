@@ -7,19 +7,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	"roadmate-api/internal/auth"
 )
-
-type Handler struct {
-	DB        *pgxpool.Pool
-	JWTSecret []byte
-}
-
-func New(db *pgxpool.Pool, jwtSecret []byte) *Handler {
-	return &Handler{DB: db, JWTSecret: jwtSecret}
-}
 
 type signupReq struct {
 	Username string `json:"username"`

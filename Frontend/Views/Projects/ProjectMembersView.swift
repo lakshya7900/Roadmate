@@ -119,7 +119,7 @@ struct ProjectMembersView: View {
 
     // MARK: - Role options
     private func isOwner(_ member: ProjectMember) -> Bool {
-        member.id == project.ownerMemberId
+        return member.id == project.ownerMemberId
     }
 
     private var roleOptions: [AddMemberView.RoleOption] {

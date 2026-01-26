@@ -12,6 +12,7 @@ import Combine
 
 @MainActor
 @Observable final class ProjectStore {
+    // Source of truth for UI (cached)
     var projects: [Project] = []
 
     private let fileURL: URL?
@@ -21,11 +22,16 @@ import Combine
     init(username: String) {
         self.persistenceEnabled = true
 
-        let safe = username.replacingOccurrences(of: "[^a-zA-Z0-9_-]+", with: "-", options: .regularExpression)
-        let url = ProjectStore.makeFileURL(filename: "projects-\(safe).json")
+        let safe = username.replacingOccurrences(
+            of: "[^a-zA-Z0-9_-]+",
+            with: "-",
+            options: .regularExpression
+        )
+
+        let url = Self.makeFileURL(filename: "projects-\(safe).json")
         self.fileURL = url
 
-        if let loaded = ProjectStore.load(from: url) {
+        if let loaded = Self.load(from: url) {
             self.projects = loaded
         } else {
             self.projects = []
@@ -34,35 +40,60 @@ import Combine
     }
 
     // MARK: - PREVIEW (no disk)
-    static func preview(projects: [Project]) -> ProjectStore {
+    static func preview(projects: [Project] = []) -> ProjectStore {
         let store = ProjectStore(persistenceEnabled: false)
         store.projects = projects
         return store
     }
 
-    // Private initializer for preview
     private init(persistenceEnabled: Bool) {
         self.persistenceEnabled = persistenceEnabled
         self.fileURL = nil
         self.projects = []
     }
 
+    // MARK: - Persistence
     func save() {
         guard persistenceEnabled, let fileURL else { return }
-        ProjectStore.save(projects, to: fileURL)
+        Self.save(projects, to: fileURL)
     }
 
+    // MARK: - List management (backend -> cache)
+    /// Replace local cache with backend list
+    func replaceAll(_ newProjects: [Project]) {
+        projects = newProjects
+        save()
+    }
+
+    /// Insert or update a project (used after create/edit APIs)
     func upsert(_ project: Project) {
         if let idx = projects.firstIndex(where: { $0.id == project.id }) {
             projects[idx] = project
         } else {
+            // newest first (matches your current style)
             projects.insert(project, at: 0)
         }
         save()
     }
 
+    /// Delete a project (used after delete API)
     func delete(_ projectId: UUID) {
         projects.removeAll { $0.id == projectId }
+        save()
+    }
+
+    // MARK: - Future: local-only patches after backend success
+    /// When you add members API later, you’ll call this with the returned updated project.
+    func updateMembers(projectId: UUID, members: [ProjectMember]) {
+        guard let idx = projects.firstIndex(where: { $0.id == projectId }) else { return }
+        projects[idx].members = members
+        save()
+    }
+
+    /// When you add tasks API later, you’ll call this with the returned updated tasks.
+    func updateTasks(projectId: UUID, tasks: [TaskItem]) {
+        guard let idx = projects.firstIndex(where: { $0.id == projectId }) else { return }
+        projects[idx].tasks = tasks
         save()
     }
 

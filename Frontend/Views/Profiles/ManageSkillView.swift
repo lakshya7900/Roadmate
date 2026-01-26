@@ -147,16 +147,16 @@ struct ManageSkillsView: View {
         defer { isLoading = false }
 
         do {
-            try await profileService.deleteSkill(token: token, id: id.uuidString)
+            try await profileService.deleteSkill(token: token, id: id)
 
             skills.removeAll { $0.id == id }
             onSave()
 
         } catch let error as SkillError {
             switch error {
-            case .skillnotfound:
+            case .skillNotFound:
                 message = "Skill not found"
-            case .server:
+            case .serverError:
                 message = "Server error. Please try again."
             }
             shakeTrigger += 1

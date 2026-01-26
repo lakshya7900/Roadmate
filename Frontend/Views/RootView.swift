@@ -14,14 +14,18 @@ struct RootView: View {
 
     @State private var showCreateProject = false
     @State private var showAlert = false
+    
+    @State private var projectService = ProjectService()
+    private var projects: [Project] { projectStore.projects }
 
     var body: some View {
-        NavigationSplitView() {
-            SidebarView()
+        NavigationSplitView {
+            SidebarView(projects: projects)
                 .navigationSplitViewColumnWidth(min: 185, ideal: 200, max: 500)
         } detail: {
             detailView
         }
+        .task { await getProjects() }
         .toolbar {
 
             // Show "+" only when we’re in Projects section
@@ -41,7 +45,6 @@ struct RootView: View {
                 projectStore.upsert(newProject)
                 appState.selection = .project(newProject.id)
             }
-            .frame(minWidth: 520, minHeight: 420)
         }
     }
 
@@ -53,13 +56,14 @@ struct RootView: View {
 
         case .allProjects, .none:
             AllProjectsGridView(
-                projects: projectStore.projects,
+                projects: projects,
                 onSelect: { id in appState.selection = .project(id) }
             )
 
         case .project(let id):
-            if let project = projectStore.projects.first(where: { $0.id == id }) {
+            if let project = projects.first(where: { $0.id == id }) {
                 ProjectDetailView(project: project)
+                    .id(project.id)
             } else {
                 EmptyStateView()
             }
@@ -80,6 +84,22 @@ struct RootView: View {
             return true
         default:
             return false
+        }
+    }
+    
+    private func getProjects() async {
+        print("Loading projects")
+        guard let token = KeychainService.loadToken() else {
+            print("Token error")
+            return
+        }
+        
+        do {
+            let p = try await projectService.getProjects(token: token)
+            projectStore.replaceAll(p)
+        } catch {
+            print("Error")
+            return
         }
     }
 }
@@ -141,3 +161,4 @@ struct RootView: View {
         .environment(projectStore)
         .frame(width: 900, height: 500)
 }
+

@@ -10,7 +10,13 @@ import SwiftUI
 
 struct ProjectDetailView: View {
     @Environment(ProjectStore.self) private var projectStore
+    @Environment(\.dismiss) private var dismiss
+    
+    @State private var projectService = ProjectService()
     @State private var project: Project
+    
+    @State private var showEditProject = false
+    @State private var showAlert = false
 
     init(project: Project) {
         _project = State(initialValue: project)
@@ -33,25 +39,89 @@ struct ProjectDetailView: View {
             }
             .padding(12)
         }
-        .onChange(of: project) { _, newValue in
-            projectStore.upsert(newValue)
+        .sheet(isPresented: $showEditProject) {
+            EditProjectView(
+                project: project,
+                onSave: { newName, newDesc in
+                    let n = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let d = newDesc.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                    project.name = n
+                    project.description = d
+
+                    projectStore.upsert(project)
+
+                    showEditProject = false
+                }
+            )
         }
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(project.name)
-                .font(.title2)
-                .fontWeight(.semibold)
+        HStack() {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(project.name)
+                    .font(.title2)
+                    .fontWeight(.semibold)
 
-            if !project.description.isEmpty {
-                Text(project.description)
-                    .foregroundStyle(.secondary)
+                if !project.description.isEmpty {
+                    Text(project.description)
+                        .foregroundStyle(.secondary)
+                }
             }
+            .padding(16)
+            
+            Spacer()
+            
+            HStack() {
+                Button {
+                    showEditProject = true
+                } label: {
+                    Image(systemName: "pencil")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                
+                Button(role: .destructive) {
+                    showAlert = true
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.title3)
+                        .foregroundStyle(.red)
+                }
+                .alert("Delete this project?", isPresented: $showAlert, actions: {
+                    Button("Cancel", role: .cancel) {}
+                    Button(role: .destructive) {
+                        Task{ await deleteProject() }
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }, message: {
+                    Text("This can't be undone")
+                })
+                .buttonStyle(.plain)
+                .foregroundStyle(.red)
+            }
+            .padding(16)
         }
-        .padding(16)
+    }
+    
+    private func deleteProject() async {
+        guard let token = KeychainService.loadToken() else {
+            return
+        }
+
+        do {
+            try await projectService.deleteProject(token: token, id: project.id)
+            projectStore.delete(project.id)
+            dismiss()
+        } catch {
+            return
+        }
     }
 }
+
 
 #Preview("Project Detail – Demo (Simple)") {
     ProjectDetailPreviewHost()

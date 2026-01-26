@@ -218,10 +218,10 @@ struct EditEducationView: View {
             dismiss()
         } catch let error as EducationError {
             switch error {
-            case .educationnotfound:
+            case .educationNotFound:
                 message = "Education not found"
                 
-            case .server:
+            case .serverError:
                 message = "Server error. Please try again."
             }
             shakeTrigger += 1
@@ -242,15 +242,15 @@ struct EditEducationView: View {
         defer { isLoading = false }
 
         do {
-            try await profileService.deleteEducation(token: token, id: education.id.uuidString)
+            try await profileService.deleteEducation(token: token, id: education.id)
             
             onDelete()
             dismiss()
         } catch let error as EducationError {
             switch error {
-            case .educationnotfound:
+            case .educationNotFound:
                 message = "Education not found"
-            case .server:
+            case .serverError:
                 message = "Server error. Please try again."
             }
             shakeTrigger += 1

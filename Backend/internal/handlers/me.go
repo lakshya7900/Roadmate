@@ -10,18 +10,37 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// Profile struct
+// ========= Profile DTOs (responses) =========
+
+type Profile struct {
+    Username   string      `json:"username"`
+    Name       string      `json:"name"`
+    Headline   string      `json:"headline"`
+    Bio        string      `json:"bio"`
+    Skills     []Skill     `json:"skills"`
+    Educations []Education `json:"educations"`
+}
+
+type Skill struct {
+    ID          string `json:"id"`
+    Name        string `json:"name"`
+    Proficiency int    `json:"proficiency"`
+}
+
+type Education struct {
+    ID        string `json:"id"`
+    School    string `json:"school"`
+    Degree    string `json:"degree"`
+    Major     string `json:"major"`
+    StartYear int    `json:"startyear"`
+    EndYear   int    `json:"endyear"`
+}
+
+// ========= Requests =========
 type updateProfileReq struct {
     Name     string `json:"name"`
     Headline string `json:"headline"`
     Bio      string `json:"bio"`
-}
-
-// Skills structs
-type skillsStruct struct {
-    ID         string `json:"id"`
-    Name       string `json:"name"`
-    Proficiency int `json:"proficiency"`
 }
 
 type addSkillReq struct {
@@ -32,20 +51,6 @@ type addSkillReq struct {
 type updateSkillReq struct {
     ID          string `json:"id"`
     Proficiency int `json:"proficiency"`
-}
-
-type deleteSkillReq struct {
-    ID string `json:"id"`
-}
-
-// Education structs
-type educationStruct struct {
-    ID        string `json:"id"`
-    School    string `json:"school"`
-    Degree    string `json:"degree"`
-    Major     string `json:"major"`
-    StartYear int `json:"startyear"`
-    EndYear   int `json:"endyear"`
 }
 
 type addEducationReq struct {
@@ -63,10 +68,6 @@ type updateEducationReq struct {
     Major     string `json:"major"`
     StartYear int    `json:"startyear"`
     EndYear   int    `json:"endyear"`
-}
-
-type deleteEducationReq struct {
-    ID        string `json:"id"`
 }
 
 
@@ -88,9 +89,9 @@ func (h *Handler) GetProfile(c *gin.Context) {
 		return
 	}
 
-    skills := make([]skillsStruct, 0)
+    skills := make([]Skill, 0)
 
-    rows, err := h.DB.Query(ctx,
+    skillRows, err := h.DB.Query(ctx,
         `select id::text, name, proficiency
         from skills
         where user_id = $1
@@ -100,20 +101,21 @@ func (h *Handler) GetProfile(c *gin.Context) {
         c.JSON(http.StatusInternalServerError, gin.H{"error": "server error"})
         return
     }
-    defer rows.Close()
 
-    for rows.Next() {
-        var s skillsStruct
-        if err := rows.Scan(&s.ID, &s.Name, &s.Proficiency); err != nil {
+    for skillRows.Next() {
+        var s Skill
+        if err := skillRows.Scan(&s.ID, &s.Name, &s.Proficiency); err != nil {
+            skillRows.Close()
             c.JSON(http.StatusInternalServerError, gin.H{"error": "server error"})
             return
         }
         skills = append(skills, s)
     }
+    skillRows.Close()
 
-    educations := make([]educationStruct, 0)
+    educations := make([]Education, 0)
 
-    rows, err = h.DB.Query(ctx,
+    eduRows, err := h.DB.Query(ctx,
         `select id::text, school, degree, major, start_year, end_year
         from educations
         where user_id = $1
@@ -123,30 +125,31 @@ func (h *Handler) GetProfile(c *gin.Context) {
         c.JSON(http.StatusInternalServerError, gin.H{"error": "server error"})
         return
     }
-    defer rows.Close()
 
-    for rows.Next() {
-        var e educationStruct
-        if err := rows.Scan(&e.ID, &e.School, &e.Degree, &e.Major, &e.StartYear, &e.EndYear); err != nil {  
+    for eduRows.Next() {
+        var e Education
+        if err := eduRows.Scan(&e.ID, &e.School, &e.Degree, &e.Major, &e.StartYear, &e.EndYear); err != nil {  
             c.JSON(http.StatusInternalServerError, gin.H{"error": "server error"})
             return
         }
         educations = append(educations, e)
     }
 
-    if err := rows.Err(); err != nil {
+    if err := eduRows.Err(); err != nil {
+        eduRows.Close()
         c.JSON(http.StatusInternalServerError, gin.H{"error": "server error"})
         return
     }
+    eduRows.Close()
 
 
-	c.JSON(http.StatusOK, gin.H{
-		"username": usr,
-		"name":     name,
-		"headline": headline,
-		"bio":      bio,
-        "skills": skills,
-        "educations": educations,
+	c.JSON(http.StatusOK, Profile{
+		Username: usr,
+		Name:     name,
+		Headline: headline,
+		Bio:      bio,
+        Skills: skills,
+        Educations: educations,
 	})
 }
 
@@ -271,7 +274,7 @@ func (h *Handler) AddSkill(c *gin.Context) {
         return
     }
 
-    var created skillsStruct
+    var created Skill
     if err := h.DB.QueryRow(ctx,
         `insert into skills (user_id, name, proficiency)
         values ($1, $2, $3)
@@ -287,7 +290,6 @@ func (h *Handler) AddSkill(c *gin.Context) {
 func (h *Handler) UpdateSkill(c *gin.Context) {
     var req updateSkillReq
     if err := c.ShouldBindJSON(&req); err != nil {
-        fmt.Printf("Error 1")
         c.JSON(http.StatusBadRequest, gin.H{"error": "bad json"})
         return
     }
@@ -304,7 +306,6 @@ func (h *Handler) UpdateSkill(c *gin.Context) {
     }
 
     if req.Proficiency < 1 || req.Proficiency > 10 {
-        fmt.Printf("Error 2")
         c.JSON(http.StatusBadRequest, gin.H{"error": "invalid proficiency"})
         return
     }
@@ -312,7 +313,7 @@ func (h *Handler) UpdateSkill(c *gin.Context) {
     ctx, cancel := contextTimeout(c, 5*time.Second)
     defer cancel()
 
-    var updated skillsStruct
+    var updated Skill
 
     err := h.DB.QueryRow(ctx,
         `update skills set proficiency = $1
@@ -333,12 +334,6 @@ func (h *Handler) UpdateSkill(c *gin.Context) {
 }
 
 func (h *Handler) DeleteSkill(c *gin.Context) {
-    var req deleteSkillReq
-    if err := c.ShouldBindJSON(&req); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "bad json"})
-        return
-    }
-
     userIDAny, ok := c.Get("uid")
     if !ok {
         c.JSON(http.StatusUnauthorized, gin.H{"error": "missing auth"})
@@ -350,12 +345,18 @@ func (h *Handler) DeleteSkill(c *gin.Context) {
         return
     }
 
+    id := strings.TrimSpace(c.Param("id"))
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing id"})
+		return
+	}
+
     ctx, cancel := contextTimeout(c, 5*time.Second)
     defer cancel()
 
     cmd, err := h.DB.Exec(ctx,
         `delete from skills where id = $1::uuid and user_id = $2`,
-        req.ID, userID,
+        id, userID,
     )
     if err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": "server error"})
@@ -447,7 +448,7 @@ func (h *Handler) AddEducation(c *gin.Context) {
         return
     }
 
-    var created educationStruct
+    var created Education
     err := h.DB.QueryRow(ctx,
         `insert into educations (user_id, school, degree, major, start_year, end_year)
         values ($1, $2, $3, $4, $5, $6)
@@ -520,7 +521,7 @@ func (h *Handler) UpdateEducation(c *gin.Context) {
     ctx, cancel := contextTimeout(c, 5*time.Second)
     defer cancel()
 
-    var updated educationStruct
+    var updated Education
 
     err := h.DB.QueryRow(ctx,
         `update educations
@@ -531,11 +532,11 @@ func (h *Handler) UpdateEducation(c *gin.Context) {
         end_year = $5
         where id = $6::uuid and user_id = $7
         returning id::text, school, degree, major, start_year, end_year
-    `, req.School, 
-    req.Degree, 
-    req.Major, 
-    req.StartYear, 
-    req.EndYear, 
+    `, school, 
+    degree, 
+    major, 
+    startYear, 
+    endYear, 
     req.ID, 
     userID).Scan(&updated.ID, 
         &updated.School, 
@@ -557,12 +558,6 @@ func (h *Handler) UpdateEducation(c *gin.Context) {
 }
 
 func (h *Handler) DeleteEducation(c *gin.Context) {
-    var req deleteEducationReq
-    if err := c.ShouldBindJSON(&req); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "bad json"})
-        return
-    }
-
     userIDAny, ok := c.Get("uid")
     if !ok {
         c.JSON(http.StatusUnauthorized, gin.H{"error": "missing auth"})
@@ -574,12 +569,18 @@ func (h *Handler) DeleteEducation(c *gin.Context) {
         return
     }
 
+    id := strings.TrimSpace(c.Param("id"))
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing id"})
+		return
+	}
+
     ctx, cancel := contextTimeout(c, 5*time.Second)
     defer cancel()
 
     cmd, err := h.DB.Exec(ctx,
         `delete from educations where id = $1::uuid and user_id = $2`,
-        req.ID, userID,
+        id, userID,
     )
     if err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": "server error"})
@@ -587,7 +588,7 @@ func (h *Handler) DeleteEducation(c *gin.Context) {
     }
 
     if cmd.RowsAffected() == 0 {
-        c.JSON(http.StatusNotFound, gin.H{"error": "skill not found"})
+        c.JSON(http.StatusNotFound, gin.H{"error": "education not found"})
         return
     }
 

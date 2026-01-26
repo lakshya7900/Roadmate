@@ -126,10 +126,10 @@ struct EditSkillView: View {
             dismiss()
         } catch let error as SkillError {
             switch error {
-            case .skillnotfound:
+            case .skillNotFound:
                 message = "Skill not found"
                 
-            case .server:
+            case .serverError:
                 message = "Server error. Please try again."
             }
             shakeTrigger += 1
@@ -150,15 +150,15 @@ struct EditSkillView: View {
         defer { isLoading = false }
 
         do {
-            try await profileService.deleteSkill(token: token, id: skill.id.uuidString)
+            try await profileService.deleteSkill(token: token, id: skill.id)
             
             onDelete()
             dismiss()
         } catch let error as SkillError {
             switch error {
-            case .skillnotfound:
+            case .skillNotFound:
                 message = "Skill not found"
-            case .server:
+            case .serverError:
                 message = "Server error. Please try again."
             }
             shakeTrigger += 1

@@ -19,4 +19,3 @@ struct Project: Codable, Identifiable, Equatable {
     var customRoles: [String] = []
     var ownerMemberId: UUID
 }
-

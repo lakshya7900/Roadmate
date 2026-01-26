@@ -12,6 +12,8 @@ struct SidebarView: View {
     @Environment(ProjectStore.self) private var projectStore
 
     @State private var projectsExpanded: Bool = true
+    
+    let projects: [Project]
 
     var body: some View {
         @Bindable var appState = appState
@@ -31,7 +33,7 @@ struct SidebarView: View {
                     Label("All Projects", systemImage: "square.grid.2x2")
                 }
 
-                ForEach(projectStore.projects) { project in
+                ForEach(projects) { project in
                     NavigationLink(value: AppState.Route.project(project.id)) {
                         Label(project.name, systemImage: "folder")
                             .lineLimit(1)
@@ -62,35 +64,24 @@ struct SidebarView: View {
     }
 }
 
-#Preview("Merged Sidebar") {
-    MergedSidebarPreviewHost()
-}
-
-private struct MergedSidebarPreviewHost: View {
-    @State private var appState = AppState()
-    @State private var store: ProjectStore
-
-    init() {
-        let owner = ProjectMember(username: "preview-user", roleKey: "frontend")
-
-        _store = State(wrappedValue: {
-            let s = ProjectStore(username: "preview-user")
-            s.projects = [
-                Project(name: "Demo One", description: "", members: [owner], tasks: [], ownerMemberId: owner.id),
-                Project(name: "Demo Two", description: "", members: [owner], tasks: [], ownerMemberId: owner.id)
-            ]
-            return s
-        }())
-    }
-
-    var body: some View {
-        NavigationSplitView {
-            SidebarView()
-                .environment(appState)
-                .environment(store)
-        } detail: {
-            Text("Detail")
-        }
-    }
-}
+//#Preview("Merged Sidebar") {
+//    let appState = AppState()
+//    let store = ProjectStore()
+//    
+//    
+//    let owner = ProjectMember(username: "preview-user", roleKey: "frontend")
+//        
+//    let demoProjects = [
+//        Project(name: "Demo One", description: "", members: [owner], tasks: [], ownerMemberId: owner.id),
+//        Project(name: "Demo Two", description: "", members: [owner], tasks: [], ownerMemberId: owner.id)
+//    ]
+//
+//    NavigationSplitView {
+//        SidebarView(projects: demoProjects)
+//            .environment(appState)
+//            .environment(store)
+//    } detail: {
+//        Text("Detail")
+//    }
+//}
 

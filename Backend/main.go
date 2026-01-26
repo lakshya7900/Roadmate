@@ -70,12 +70,19 @@ func main() {
 	// Skills APIs
 	authed.POST("/skills", h.AddSkill)
 	authed.PUT("/skills", h.UpdateSkill)
-	authed.DELETE("/skills", h.DeleteSkill)
+	authed.DELETE("/skills/:id", h.DeleteSkill)
 
 	// Educations APIs
 	authed.POST("/educations", h.AddEducation)
 	authed.PUT("/educations", h.UpdateEducation)
-	authed.DELETE("/educations", h.DeleteEducation)
+	authed.DELETE("/educations/:id", h.DeleteEducation)
+
+	// Projects
+	authed.GET("/projects", h.GetProjects)
+	authed.POST("/projects", h.CreateProject)
+	authed.PUT("/projects", h.EditProjectDetails)
+	authed.DELETE("/projects/:id", h.DeleteProject)
+
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	fmt.Printf("%s Server running on http://localhost:%s\n", time.Now().Format("2006/01/02 15:04:05"), cfg.Port)
