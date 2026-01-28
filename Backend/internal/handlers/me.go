@@ -72,10 +72,13 @@ type updateEducationReq struct {
 
 
 func (h *Handler) GetProfile(c *gin.Context) {
+    fmt.Print("Getting profile")
 	uidAny, _ := c.Get("uid")
 	usrAny, _ := c.Get("usr")
 	uid := uidAny.(string)
 	usr := usrAny.(string)
+
+    fmt.Print("Got user id")
 
 	ctx, cancel := contextTimeout(c, 5*time.Second)
 	defer cancel()
@@ -85,6 +88,7 @@ func (h *Handler) GetProfile(c *gin.Context) {
 		`select name, headline, bio from profiles where user_id = $1`,
 		uid,
 	).Scan(&name, &headline, &bio); err != nil {
+        fmt.Print(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "server error"})
 		return
 	}
@@ -98,6 +102,7 @@ func (h *Handler) GetProfile(c *gin.Context) {
         order by proficiency desc, lower(name) asc
         `, uid)
     if err != nil {
+        fmt.Print(err)
         c.JSON(http.StatusInternalServerError, gin.H{"error": "server error"})
         return
     }
@@ -105,6 +110,7 @@ func (h *Handler) GetProfile(c *gin.Context) {
     for skillRows.Next() {
         var s Skill
         if err := skillRows.Scan(&s.ID, &s.Name, &s.Proficiency); err != nil {
+            fmt.Print(err)
             skillRows.Close()
             c.JSON(http.StatusInternalServerError, gin.H{"error": "server error"})
             return
@@ -122,13 +128,15 @@ func (h *Handler) GetProfile(c *gin.Context) {
         order by start_year desc, lower(school) asc
         `, uid)
     if err != nil {
+        fmt.Print(err)
         c.JSON(http.StatusInternalServerError, gin.H{"error": "server error"})
         return
     }
 
     for eduRows.Next() {
         var e Education
-        if err := eduRows.Scan(&e.ID, &e.School, &e.Degree, &e.Major, &e.StartYear, &e.EndYear); err != nil {  
+        if err := eduRows.Scan(&e.ID, &e.School, &e.Degree, &e.Major, &e.StartYear, &e.EndYear); err != nil {
+            fmt.Print(err)  
             c.JSON(http.StatusInternalServerError, gin.H{"error": "server error"})
             return
         }
@@ -136,6 +144,7 @@ func (h *Handler) GetProfile(c *gin.Context) {
     }
 
     if err := eduRows.Err(); err != nil {
+        fmt.Print(err)
         eduRows.Close()
         c.JSON(http.StatusInternalServerError, gin.H{"error": "server error"})
         return

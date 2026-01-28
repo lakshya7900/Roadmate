@@ -66,8 +66,13 @@ struct ProfileView: View {
             } else if let profileError {
                 VStack(spacing: 10) {
                     Text(profileError).foregroundStyle(.red)
-                    Button("Retry") { Task { await loadProfile() } }
-                        .buttonStyle(.bordered)
+                    
+                    HStack() {
+                        Button("Retry") { Task { await loadProfile() } }
+                            .buttonStyle(.bordered)
+                        Button("Log Out") { session.logout() }
+                            .tint(Color(.red))
+                    }
                 }
                 .padding(.top, 40)
             } else if let profile {
