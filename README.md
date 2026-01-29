@@ -23,7 +23,7 @@ Instead of manually deciding who does what and which tools to use, Forge acts as
 - **Frontend**: Swift & SwiftUI (macOS application)  
 - **Backend**: Go (REST APIs)  
 - **Database**: PostgreSQL  
-- **AI**: Apple Developer AI Frameworks (on-device intelligence)  
+- **AI**: Apple Foundation Model
 - **Authentication**: JWT-based authentication  
 
 ---
