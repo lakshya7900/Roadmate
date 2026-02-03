@@ -19,7 +19,7 @@ struct EditTaskView: View {
     @State private var title: String
     @State private var details: String
     @State private var status: TaskStatus
-    @State private var owner: String
+    @State private var assignee: String
     @State private var difficulty: Double
     @State private var showDeleteConfirm = false
 
@@ -32,7 +32,7 @@ struct EditTaskView: View {
         _title = State(initialValue: task.title)
         _details = State(initialValue: task.details)
         _status = State(initialValue: task.status)
-        _owner = State(initialValue: task.ownerUsername ?? "")
+        _assignee = State(initialValue: task.assigneeUsername ?? "")
         _difficulty = State(initialValue: Double(task.difficulty))
     }
 
@@ -53,7 +53,7 @@ struct EditTaskView: View {
                     }
                 }
 
-                Picker("Owner", selection: $owner) {
+                Picker("Owner", selection: $assignee) {
                     Text("Unassigned").tag("")
                     ForEach(members) { m in
                         Text(m.username).tag(m.username)
@@ -81,7 +81,7 @@ struct EditTaskView: View {
                     updated.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
                     updated.details = details
                     updated.status = status
-                    updated.ownerUsername = owner.isEmpty ? nil : owner
+                    updated.assigneeUsername = assignee.isEmpty ? nil : assignee
                     updated.difficulty = Int(difficulty)
                     onSave(updated)
                     dismiss()

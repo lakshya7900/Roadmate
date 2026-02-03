@@ -224,7 +224,7 @@ struct EditProjectView: View {
         name: "Roadmate",
         description: "Local AI dev planner for teams.",
         members: [owner],
-        tasks: [TaskItem(title: "Demo", status: .done)],
+        tasks: [TaskItem(id: UUID(), title: "Profile Polish", details: "", status: .inProgress, difficulty: 2, createdAt: Date(), sortIndex: 2)],
         ownerMemberId: owner.id
     )
 

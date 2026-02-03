@@ -5,7 +5,6 @@
 //  Created by Lakshya Agarwal on 1/9/26.
 //
 
-
 import SwiftUI
 
 struct TaskCardView: View {
@@ -61,8 +60,8 @@ struct TaskCardView: View {
                 }
 
                 HStack {
-                    if let owner = local.ownerUsername, !owner.isEmpty {
-                        Text(owner).font(.caption).foregroundStyle(.secondary)
+                    if let assignee = local.assigneeUsername, !assignee.isEmpty {
+                        Text(assignee).font(.caption).foregroundStyle(.secondary)
                     } else {
                         Text("Unassigned").font(.caption).foregroundStyle(.secondary)
                     }
@@ -91,9 +90,9 @@ struct TaskCardView: View {
                 }
             }
 
-            Picker("Owner", selection: Binding(
-                get: { local.ownerUsername ?? "" },
-                set: { v in local.ownerUsername = v.isEmpty ? nil : v; commit() }
+            Picker("Assignee", selection: Binding(
+                get: { local.assigneeUsername ?? "" },
+                set: { v in local.assigneeUsername = v.isEmpty ? nil : v; commit() }
             )) {
                 Text("Unassigned").tag("")
                 ForEach(members) { m in

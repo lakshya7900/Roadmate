@@ -52,3 +52,19 @@ create table if not exists projects_members (
   roleKey text not null,
   created_at timestamptz not null default now()
 );
+
+create table if not exists tasks (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references projects(id) on delete cascade,
+  title text not null,
+  details text not null default '',
+  status text not null default 'backlog', -- backlog | inProgress | blocked | done
+  assignee_id uuid null references users(id) on delete set null,
+  difficulty int not null default 2 check (difficulty between 1 and 5),
+  sort_index int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_tasks_project_id on tasks(project_id);
+create index if not exists idx_tasks_project_status on tasks(project_id, status);
+create index if not exists idx_tasks_project_sort on tasks(project_id, sort_index, created_at);

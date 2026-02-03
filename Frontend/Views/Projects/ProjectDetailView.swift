@@ -143,9 +143,9 @@ private struct ProjectDetailPreviewHost: View {
                 ProjectMember(username: "teammateB", roleKey: "backend"),
             ],
             tasks: [
-                TaskItem(title: "Set up app shell + navigation", status: .done, ownerUsername: "preview-user", difficulty: 2),
-                TaskItem(title: "Polish Task Card UI", status: .inProgress, ownerUsername: "teammateA", difficulty: 3),
-                TaskItem(title: "Define roadmap JSON schema", status: .backlog, ownerUsername: "teammateB", difficulty: 2),
+                TaskItem(id: UUID(), title: "Setup shell + navigation", details: "", status: .inProgress, difficulty: 2, createdAt: Date(), sortIndex: 2),
+                TaskItem(id: UUID(), title: "Profile Polish", details: "", status: .done, difficulty: 2, createdAt: Date(), sortIndex: 1),
+                TaskItem(id: UUID(), title: "Define roadmap schema", details: "", status: .inProgress, difficulty: 2, createdAt: Date(), sortIndex: 3),
             ],
             ownerMemberId: demoOwner.id
         )

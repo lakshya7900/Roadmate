@@ -11,7 +11,6 @@ import (
 )
 
 // ========= Profile DTOs (responses) =========
-
 type Profile struct {
     Username   string      `json:"username"`
     Name       string      `json:"name"`

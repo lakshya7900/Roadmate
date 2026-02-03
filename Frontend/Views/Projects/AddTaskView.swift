@@ -10,14 +10,22 @@ import SwiftUI
 
 struct AddTaskView: View {
     @Environment(\.dismiss) private var dismiss
+    let projectId: UUID
     let members: [ProjectMember]
     let onAdd: (TaskItem) -> Void
+    
+    @State private var taskSerive = TaskService()
 
     @State private var title = ""
     @State private var details = ""
     @State private var status: TaskStatus = .backlog
-    @State private var owner: String? = nil
+    @State private var assigneeId: UUID? = nil
     @State private var difficulty: Double = 2
+    
+    // UI state
+    @State private var message: String = ""
+    @State private var isLoading = false
+    @State private var shakeTrigger: Int = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -36,13 +44,10 @@ struct AddTaskView: View {
                     }
                 }
 
-                Picker("Owner", selection: Binding(
-                    get: { owner ?? "" },
-                    set: { owner = $0.isEmpty ? nil : $0 }
-                )) {
-                    Text("Unassigned").tag("")
-                    ForEach(members, id: \.id) { m in
-                        Text(m.username).tag(m.username)
+                Picker("Assignee", selection: $assigneeId) {
+                    Text("Unassigned").tag(UUID?.none)
+                    ForEach(members) { m in
+                        Text(m.username).tag(UUID?.some(m.id))
                     }
                 }
 
@@ -51,25 +56,89 @@ struct AddTaskView: View {
                     Slider(value: $difficulty, in: 1...5, step: 1)
                 }
             }
-
-            HStack {
-                Spacer()
-                Button("Cancel") { dismiss() }
-                Button("Add") {
-                    let task = TaskItem(
-                        title: title.trimmingCharacters(in: .whitespacesAndNewlines),
-                        details: details,
-                        status: status,
-                        ownerUsername: owner,
-                        difficulty: Int(difficulty)
-                    )
-                    onAdd(task)
-                    dismiss()
+            
+            VStack(alignment: .trailing) {
+                if !message.isEmpty {
+                    Label(message, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                        .font(.default)
                 }
-                .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .keyboardShortcut(.defaultAction)
+
+                HStack {
+                    Spacer()
+                    Button("Cancel") { dismiss() }
+                        .disabled(isLoading)
+                    Button(action: {
+                        Task { await addTask() }
+                    }, label: {
+                        HStack(spacing: 10) {
+                            if isLoading {
+                                ProgressView().controlSize(.small)
+                            }
+                            Text("Add")
+                        }
+                    })
+                    .disabled(isLoading)
+                    .shake(shakeTrigger)
+                    .animation(.snappy, value: isLoading)
+                    .keyboardShortcut(.defaultAction)
+                }
             }
+            .animation(.snappy, value: message)
         }
         .padding(20)
+    }
+    
+    private func addTask() async {
+        message = ""
+        
+        guard let token = KeychainService.loadToken() else {
+            message = "Missing token. Please log in again."
+            shakeTrigger += 1
+            return
+        }
+        
+        isLoading = true
+        defer { isLoading = false }
+        
+        do {
+            let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmedTitle.isEmpty else {
+                message = "Task title is empty"
+                shakeTrigger += 1
+                return
+            }
+            
+            if details.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                details = ""
+            }
+            
+            let created = try await taskSerive.addTask(
+                token: token,
+                projectId: projectId,
+                title: trimmedTitle,
+                details: details,
+                status: status,
+                assigneeID: assigneeId,
+                difficulty: Int(difficulty)
+            )
+            
+            onAdd(created)
+            dismiss()
+        } catch {
+            message = "Failed to add task"
+            shakeTrigger += 1
+        }
+    }
+}
+
+
+#Preview {
+    let sampleMembers: [ProjectMember] = [
+        ProjectMember(id: UUID(), username: "alice", roleKey: "frontend"),
+        ProjectMember(id: UUID(), username: "bob", roleKey: "backend")
+    ]
+    AddTaskView(projectId: UUID(), members: sampleMembers) { _ in
+        // pretend it succeeds
     }
 }

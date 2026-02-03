@@ -80,7 +80,7 @@ struct ProjectTile: View {
         name: "Demo: Roadmate Planner",
         description: "SeedSeedSeedSeedSeedSeedSeedSeedSeedSeedSeedSeedSeedSeedSeedSeedSeedSeedSeedSeedSeedSeedSeedSeed",
         members: [demoOwner],
-        tasks: [TaskItem(title: "Task", status: .backlog)],
+        tasks: [TaskItem(id: UUID(), title: "Profile Polish", details: "", status: .inProgress, difficulty: 2, createdAt: Date(), sortIndex: 2)],
         ownerMemberId: demoOwner.id
     ))
     .padding()

@@ -83,6 +83,9 @@ func main() {
 	authed.PUT("/projects", h.EditProjectDetails)
 	authed.DELETE("/projects/:id", h.DeleteProject)
 
+	// Project Tasks
+	authed.POST("/projects/:id/tasks", h.AddTask)
+
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	fmt.Printf("%s Server running on http://localhost:%s\n", time.Now().Format("2006/01/02 15:04:05"), cfg.Port)

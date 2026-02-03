@@ -10,20 +10,28 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-type memberStruct struct {
+// ========= Project DTOs (responses) =========
+type Member struct {
 	ID string 		`json:"id"`
 	Username string `json:"username"`
 	RoleKey string 	`json:"roleKey"`
 }
 
-type projectStruct struct {
+type Project struct {
     ID string 				`json:"id"`
     Name string 			`json:"name"`
     Description string 		`json:"description"`
 	OwnerId string 			`json:"owner_id"`
-	Members []memberStruct 	`json:"members"`
+	Members []Member 		`json:"members"`
 }
 
+type EditProjectDetail struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+// ========= Requests =========
 type createProjectReq struct {
     Name string 		`json:"name"`
 	Description string	`json:"description"`
@@ -33,12 +41,6 @@ type editProjectDetailsReq struct {
 	ID string 			`json:"id"`
 	Name string 		`json:"name"`
 	Description string	`json:"description"`
-}
-
-type editProjectDetailsResp struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
 }
 
 func (h *Handler) GetProjects(c *gin.Context) {
@@ -78,16 +80,16 @@ func (h *Handler) GetProjects(c *gin.Context) {
 	}
 	defer rows.Close()
 
-	projects := make([]projectStruct, 0)
+	projects := make([]Project, 0)
 	projectIDs := make([]string, 0)
 
 	for rows.Next() {
-		var p projectStruct
+		var p Project
 		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.OwnerId); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "server error"})
 			return
 		}
-		p.Members = []memberStruct{}
+		p.Members = []Member{}
 		projects = append(projects, p)
 		projectIDs = append(projectIDs, p.ID)
 	}
@@ -122,11 +124,11 @@ func (h *Handler) GetProjects(c *gin.Context) {
 	defer memRows.Close()
 
 	// Build map projectID -> []members
-	memberMap := make(map[string][]memberStruct, len(projectIDs))
+	memberMap := make(map[string][]Member, len(projectIDs))
 
 	for memRows.Next() {
 		var pid string
-		var m memberStruct
+		var m Member
 		if err := memRows.Scan(&pid, &m.ID, &m.Username, &m.RoleKey); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "server error"})
 			return
@@ -205,7 +207,7 @@ func (h *Handler) CreateProject(c *gin.Context) {
 		return
 	}
 
-	var members memberStruct
+	var members Member
 	if err := h.DB.QueryRow(ctx,
 		`insert into projects_members (project_id, user_id, username, roleKey)
 		values ($1, $2, $3, $4)
@@ -220,12 +222,12 @@ func (h *Handler) CreateProject(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, projectStruct{
+	c.JSON(http.StatusOK, Project{
 		ID: projectID,
 		Name: name,
 		Description: req.Description,
 		OwnerId: ownerID,
-		Members: []memberStruct{members},
+		Members: []Member{members},
 	})
 }
 
@@ -273,7 +275,7 @@ func (h *Handler) EditProjectDetails(c *gin.Context) {
 	}
 	defer tx.Rollback(ctx)
 
-	var updated editProjectDetailsResp
+	var updated EditProjectDetail
 	if err := h.DB.QueryRow(ctx,
 		`update projects 
 		set name = $1, 

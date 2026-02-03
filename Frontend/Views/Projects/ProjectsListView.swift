@@ -110,11 +110,11 @@ private struct ProjectsListPreviewHost: View {
                         ProjectMember(username: "teammateC", roleKey: "pm"),
                     ],
                     tasks: [
-                        TaskItem(title: "Set up app shell + navigation", status: .done),
-                        TaskItem(title: "Polish Task Card UI", status: .inProgress),
-                        TaskItem(title: "Implement ProjectStore persistence", status: .inProgress),
-                        TaskItem(title: "Define roadmap JSON schema", status: .backlog),
-                        TaskItem(title: "Fix blocked state styling", status: .blocked),
+                        TaskItem(id: UUID(), title: "Set up app shell + navigation", details: "", status: .done, difficulty: 4, createdAt: Date(), sortIndex: 0),
+                        TaskItem(id: UUID(), title: "Polish Task Card UI",  details: "", status: .inProgress, difficulty: 1, createdAt: Date(), sortIndex: 1),
+                        TaskItem(id: UUID(), title: "Implement ProjectStore persistence",  details: "", status: .inProgress, difficulty: 4, createdAt: Date(), sortIndex: 0),
+                        TaskItem(id: UUID(), title: "Define roadmap JSON schema",  details: "", status: .backlog, difficulty: 4, createdAt: Date(), sortIndex: 0),
+                        TaskItem(id: UUID(), title: "Fix blocked state styling",  details: "", status: .backlog, difficulty: 4, createdAt: Date(), sortIndex: 1)
                     ],
                     ownerMemberId: demoOwner.id
                 ),
@@ -125,7 +125,7 @@ private struct ProjectsListPreviewHost: View {
                         demoOwner
                     ],
                     tasks: [
-                        TaskItem(title: "Draft onboarding", status: .backlog)
+                        TaskItem(id: UUID(), title: "Fix blocked state styling",  details: "", status: .backlog, difficulty: 4, createdAt: Date(), sortIndex: 1)
                     ],
                     ownerMemberId: demoOwner.id
                 )

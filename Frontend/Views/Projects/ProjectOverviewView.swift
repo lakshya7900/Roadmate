@@ -118,8 +118,8 @@ struct ProjectOverviewView: View {
                                             .lineLimit(1)
 
                                         HStack(spacing: 8) {
-                                            if let owner = t.ownerUsername, !owner.isEmpty {
-                                                Text(owner).foregroundStyle(.secondary)
+                                            if let assignee = t.assigneeUsername, !assignee.isEmpty {
+                                                Text(assignee).foregroundStyle(.secondary)
                                             } else {
                                                 Text("Unassigned").foregroundStyle(.secondary)
                                             }

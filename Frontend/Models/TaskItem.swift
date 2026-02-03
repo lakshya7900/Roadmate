@@ -40,13 +40,43 @@ enum TaskStatus: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+struct TaskDTO: Decodable {
+    let id: String
+    let title: String
+    let details: String
+    let status: String
+    let assignee_id: String?
+    let assignee_username: String?
+    let difficulty: Int
+    let sort_index: Int
+    let created_at: String
+}
+
+
 struct TaskItem: Codable, Identifiable, Equatable {
-    var id: UUID = UUID()
+    let id: UUID
     var title: String
-    var details: String = ""
-    var status: TaskStatus = .backlog
-    var ownerUsername: String? = nil
-    var difficulty: Int = 2 // 1...5
-    var createdAt: Date = Date()
-    var sortIndex: Int = 0
+    var details: String
+    var status: TaskStatus
+    var assigneeId: UUID?
+    var assigneeUsername: String?
+    var difficulty: Int
+    var createdAt: Date
+    var sortIndex: Int
+}
+
+extension TaskItem {
+    init(from dto: TaskDTO) {
+        self.id = UUID(uuidString: dto.id)!
+        self.title = dto.title
+        self.details = dto.details
+        self.status = TaskStatus(rawValue: dto.status) ?? .backlog
+        self.assigneeId = dto.assignee_id.flatMap(UUID.init)
+        self.assigneeUsername = dto.assignee_username
+        self.difficulty = max(1, min(dto.difficulty, 5))
+        self.sortIndex = dto.sort_index
+
+        let formatter = ISO8601DateFormatter()
+        self.createdAt = formatter.date(from: dto.created_at) ?? Date()
+    }
 }

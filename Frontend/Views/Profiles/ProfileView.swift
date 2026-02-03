@@ -678,8 +678,8 @@ struct ProfileView: View {
             description: "Local AI dev planner for teams.",
             members: [ProjectMember(username: "lakshya", roleKey: "fullstack")],
             tasks: [
-                TaskItem(title: "Ship v1", status: .done),
-                TaskItem(title: "Profile polish", status: .inProgress)
+                TaskItem(id: UUID(), title: "Ship v1", details: "", status: .done, difficulty: 2, createdAt: Date(), sortIndex: 1),
+                TaskItem(id: UUID(), title: "Profile Polish", details: "", status: .inProgress, difficulty: 2, createdAt: Date(), sortIndex: 2),
             ],
             ownerMemberId: UUID()
         ),
@@ -687,7 +687,7 @@ struct ProfileView: View {
             name: "Side Project",
             description: "Something cool",
             members: [ProjectMember(username: "lakshya", roleKey: "fullstack")],
-            tasks: [TaskItem(title: "MVP", status: .inProgress)],
+            tasks: [TaskItem(id: UUID(), title: "MVP", details: "", status: .backlog, difficulty: 4, createdAt: Date(), sortIndex: 3)],
             ownerMemberId: UUID()
         ),
         Project(

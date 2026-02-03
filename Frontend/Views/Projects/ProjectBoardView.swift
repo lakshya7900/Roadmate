@@ -31,11 +31,11 @@ struct ProjectBoardView: View {
             Spacer(minLength: 0)
         }
         .sheet(isPresented: $showAddTask) {
-            AddTaskView(members: project.members) { task in
+            AddTaskView(projectId: project.id, members: project.members) { task in
                 var t = task
-                // put new tasks at end of their column
                 t.sortIndex = nextSortIndex(for: t.status)
                 project.tasks.append(t)
+                normalizeSortIndexes(for: t.status)
             }
             .frame(minWidth: 520, minHeight: 360)
         }
@@ -131,7 +131,10 @@ struct ProjectBoardView: View {
     private func tasksFor(_ status: TaskStatus) -> [TaskItem] {
         project.tasks
             .filter { $0.status == status }
-            .sorted { $0.sortIndex < $1.sortIndex }
+            .sorted { (a: TaskItem, b: TaskItem) -> Bool in
+                if a.sortIndex != b.sortIndex { return a.sortIndex < b.sortIndex }
+                return a.createdAt < b.createdAt
+            }
     }
 
     private func nextSortIndex(for status: TaskStatus) -> Int {
